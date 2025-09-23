@@ -27,6 +27,8 @@ const userSchema = new mongoose.Schema({
     skills:{
         type:[String]
     },
+    resetPasswordToken:String,
+    resetPasswordExpires:Date
 },{timestamps:true});
 
 export default mongoose.model("User",userSchema);
