@@ -1,67 +1,41 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import React, { createContext, useContext, useState} from "react";
+import axios from "axios";
 
 interface AuthContextType {
-  currentUser: User | null;
+  currentUser: any;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  signup: (name: string, email: string, password: string, role: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+  const API_URL = "http://localhost:3000/api/auth"; // Your backend port
+
+  const signup = async (name: string, email: string, password: string, role: string) => {
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/signup`, { name, email, password, role });
+      const { token, user } = res.data;
+      localStorage.setItem("token", token);
       setCurrentUser(user);
+    } catch (err: any) {
+      throw new Error(err.response?.data?.error || "Signup failed");
+    } finally {
       setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  const signup = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+    }
   };
 
-  const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
-  };
+  const value = { currentUser, loading, signup };
 
-  const logout = async () => {
-    await signOut(auth);
-  };
-
-  const value = {
-    currentUser,
-    loading,
-    login,
-    signup,
-    logout
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

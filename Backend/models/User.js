@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { StrictMode } from "react";
 
 const userSchema = new mongoose.Schema({
     name:{
@@ -9,11 +8,13 @@ const userSchema = new mongoose.Schema({
     email:{
         type:String,
         required:true,
-        unique:true
+        unique:true,
+        lowercase:true
     },
     password:{
         type:String,
         required:true,
+        minlength:6
     },
     role:{
         type:String,
@@ -24,11 +25,8 @@ const userSchema = new mongoose.Schema({
         type:String
     },
     skills:{
-        type:String
+        type:[String]
     },
-    token:{
-        type:String
-    }
 },{timestamps:true});
 
 export default mongoose.model("User",userSchema);

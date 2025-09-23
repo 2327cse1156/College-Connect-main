@@ -2,17 +2,23 @@ import express from "express"
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
-
+import auth from "./routes/auth.js"
+import cookieParser from "cookie-parser";
 dotenv.config();
 const app = express();
 
 
-app.use(cors());
+app.use(cors({
+    origin:"http://localhost:5173",
+    credentials:true,
+}));
+app.use(cookieParser());
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
 
 connectDB();
+app.use("/api/auth", auth);
 
 app.listen(PORT,()=>{
     console.log(`SERVER RUNNING SUCCESSFULLY on port ${PORT}`);
