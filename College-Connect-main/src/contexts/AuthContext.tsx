@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -12,6 +12,9 @@ interface AuthContextType {
     role: string
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, newPassword: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -28,7 +31,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = "http://localhost:3000/api/auth"; // Backend URL
+  const API_URL = import.meta.env.VITE_API_URL + "/auth"; // Backend URL
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
+  }, []);
 
   const signup = async (
     name: string,
@@ -46,6 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       const { token, user } = res.data;
       localStorage.setItem("token", token);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       setCurrentUser(user);
       toast.success("Account created successfully!");
     } catch (err: any) {
@@ -63,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const res = await axios.post(`${API_URL}/login`, { email, password });
       const { token, user } = res.data;
       localStorage.setItem("token", token);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       setCurrentUser(user);
       toast.success("Logged in successfully!");
     } catch (err: any) {
@@ -99,7 +111,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const value = { currentUser, loading, signup, login,forgotPassword,resetPassword };
+  const logout = () => {
+    localStorage.removeItem("token");
+    delete axios.defaults.headers.common["Authorization"];
+    setCurrentUser(null);
+    toast.success("Logged out successfully!");
+  };
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) setCurrentUser(JSON.parse(storedUser));
+  }, [setCurrentUser]);
+
+  const value = {
+    currentUser,
+    loading,
+    signup,
+    login,
+    forgotPassword,
+    resetPassword,
+    logout,
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

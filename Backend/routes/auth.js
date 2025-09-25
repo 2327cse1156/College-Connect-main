@@ -10,3 +10,4 @@ router.post("/reset-password", resetPassword);
 router.post("/validate-token", validateToken);
 
 export default router;
+

@@ -17,8 +17,10 @@ const transporter = nodemailer.createTransport({
 });
 
 
+
 // Signup controller
 export const signup = async (req, res) => {
+  console.log(req.body);
   try {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password) {
@@ -177,7 +179,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-
+// Validate token
 export const validateToken = async (req, res) => {
   const { token } = req.body;
   try {
@@ -188,4 +190,19 @@ export const validateToken = async (req, res) => {
   }
 };
 
+//logout controller
+export const logout = async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully. Please clear token from client storage.",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: "Logout failed",
+      details: error.message,
+    });
+  }
+};
 
