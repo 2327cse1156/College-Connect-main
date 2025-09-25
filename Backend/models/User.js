@@ -31,6 +31,14 @@ const userSchema = new mongoose.Schema({
         type:String,
         default:""
     },
+    location:{
+      type:String,
+      default:""  
+    },
+    joinDate:{
+        type:Date,
+        default:Date.now,
+    },
     resetPasswordToken:String,
     resetPasswordExpires:Date
 },{timestamps:true});
