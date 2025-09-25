@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import auth from "./routes/auth.js"
 import cookieParser from "cookie-parser";
+import profileRoutes from "./routes/profile.js"
 dotenv.config();
 const app = express();
 
@@ -19,6 +20,7 @@ const PORT = process.env.PORT || 5000;
 
 connectDB();
 app.use("/api/auth", auth);
+app.use("/api/profile",profileRoutes)
 
 app.listen(PORT,()=>{
     console.log(`SERVER RUNNING SUCCESSFULLY on port ${PORT}`);
