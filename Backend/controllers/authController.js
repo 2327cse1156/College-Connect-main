@@ -1,31 +1,40 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer"
+import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 dotenv.config();
-
-console.log("EMAIL_USER:", process.env.EMAIL_USER);
-console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "LOADED" : "MISSING");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER, 
-    pass: process.env.EMAIL_PASS, 
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
+// Helper to set HttpOnly cookie
+const sendTokenCookie = (res, user) => {
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    expiresIn: "1d",
+  });
 
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "strict",
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+  });
+};
 
-// Signup controller
+// ---------------- SIGNUP ----------------
 export const signup = async (req, res) => {
-  console.log(req.body);
   try {
     const { name, email, password, role } = req.body;
-    if (!name || !email || !password) {
+
+    if (!name || !email || !password)
       return res.status(400).json({ error: "All fields are required" });
-    }
+
     const allowedDomains = [
       "college.edu",
       "students.college.edu",
@@ -33,20 +42,17 @@ export const signup = async (req, res) => {
       "iit.edu",
       "nit.edu",
     ];
+
     if (role === "student") {
       const emailDomain = email.split("@")[1];
-      if (!allowedDomains.includes(emailDomain)) {
-        return res.status(400).json({
-          error: "Kindly use a valid college email address",
-        });
-      }
+      if (!allowedDomains.includes(emailDomain))
+        return res.status(400).json({ error: "Kindly use a valid college email" });
     }
+
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        error: "User already exists",
-      });
-    }
+    if (existingUser)
+      return res.status(400).json({ error: "User already exists" });
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
       name,
@@ -54,69 +60,51 @@ export const signup = async (req, res) => {
       password: hashedPassword,
       role: role || "student",
     });
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
-    user.token = token;
-    await user.save();
-    return res.status(201).json({
-      token,
-      user,
-      success: true,
-      message: "User Registered Successfully",
-    });
+
+    sendTokenCookie(res, user);
+
+    res.status(201).json({ user, success: true, message: "User Registered Successfully" });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: "Signup failed",
-      details: error.message,
-    });
+    res.status(500).json({ success: false, error: "Signup failed", details: error.message });
   }
 };
 
-// Login controller
-
+// ---------------- LOGIN ----------------
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ error: "Email and password are required" });
-    }
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ error: "User not found" });
-    }
+    if (!user) return res.status(400).json({ error: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ error: "Invalid password" });
-    }
+    if (!isMatch) return res.status(400).json({ error: "Invalid password" });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
+    sendTokenCookie(res, user);
 
-    user.token = token;
-
-    return res.status(200).json({
-      token,
-      user,
-      success: true,
-      message: "Logged in successfully",
-    });
+    res.status(200).json({ user, success: true, message: "Logged in successfully" });
   } catch (error) {
-    console.error("Login error:", error);
-    return res.status(500).json({
-      success: false,
-      error: "Login failed",
-      details: error.message,
-    });
+    res.status(500).json({ success: false, error: "Login failed", details: error.message });
   }
 };
 
-// Forgot password
+// ---------------- LOGOUT ----------------
+export const logout = async (req, res) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+    res.status(200).json({ success: true, message: "Logged out successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Logout failed", details: error.message });
+  }
+};
+
+// ---------------- FORGOT PASSWORD ----------------
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email is required" });
@@ -125,84 +113,38 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_RESET_SECRET, 
-      { expiresIn: "1h" }
-    );
-
+    const token = jwt.sign({ id: user._id }, process.env.JWT_RESET_SECRET, { expiresIn: "1h" });
     const resetUrl = `http://localhost:5173/reset-password?token=${token}`;
 
-    const mailOptions = {
+    await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: "Password Reset Request",
-      html: `<p>You requested a password reset. Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
-    };
+      html: `<p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
+    });
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent:", info.response);
     res.status(200).json({ message: "Password reset email sent" });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 };
 
-// reset password
+// ---------------- RESET PASSWORD ----------------
 export const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
-  if (!token || !newPassword)
-    return res.status(400).json({ error: "Token and new password are required" });
+  if (!token || !newPassword) return res.status(400).json({ error: "Token and new password are required" });
 
   try {
-    
     const decoded = jwt.verify(token, process.env.JWT_RESET_SECRET);
-    const userId = decoded.id;
-
-    const user = await User.findById(userId);
+    const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    
-    const hashed = await bcrypt.hash(newPassword, 10);
-    user.password = hashed;
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
     res.status(200).json({ message: "Password reset successful" });
   } catch (err) {
-    console.error(err);
-    if (err.name === "TokenExpiredError") {
-      return res.status(400).json({ error: "Token has expired" });
-    }
+    if (err.name === "TokenExpiredError") return res.status(400).json({ error: "Token has expired" });
     res.status(400).json({ error: "Invalid token" });
   }
 };
-
-// Validate token
-export const validateToken = async (req, res) => {
-  const { token } = req.body;
-  try {
-    jwt.verify(token, process.env.JWT_RESET_SECRET);
-    res.status(200).json({ valid: true });
-  } catch {
-    res.status(400).json({ error: "Invalid or expired token" });
-  }
-};
-
-//logout controller
-export const logout = async (req, res) => {
-  try {
-    res.status(200).json({
-      success: true,
-      message: "Logged out successfully. Please clear token from client storage.",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Logout failed",
-      details: error.message,
-    });
-  }
-};
-

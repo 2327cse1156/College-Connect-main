@@ -1,89 +1,166 @@
-// import React from 'react';
-import {  Briefcase, Code, MapPin, Calendar } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import toast from "react-hot-toast";
+
+import ProfileHeader from "../components/ProfileHeader";
+import ProfileBio from "../components/ProfileBio";
+import ProfileSkills from "../components/ProfileSkills";
+import ProfileResume from "../components/ProfileResume";
+import ProfileActivity from "../components/ProfileActivity";
+import ProfileExtraFields from "../components/ProfileExtraFields";
+
+export interface ProfileForm {
+  name: string;
+  bio: string;
+  location: string;
+  skills: string[];
+  avatarFile: File | null;
+  avatar: string;
+  resumeFile: File | null;
+  resumeUrl: string;
+  yearOfAdmission: string;
+  yearOfGraduation: string;
+  course: string;
+  branch: string;
+  college: string;
+  website: string;
+  linkedin: string;
+  github: string;
+  activities?: { title: string; description: string; type?: string }[];
+}
 
 const Profile = () => {
-  const user = {
-    name: 'Pravira Shukla',
-    role: 'Computer Science Student',
-    location: 'Ghaziabad',
-    email: 'shukla.kiet@university.edu',
-    joinDate: 'September 2023',
-    skills: ['React', 'TypeScript', 'Node.js', 'Python', 'AWS'],
-    bio: 'Passionate about web development and machine learning. Always eager to collaborate on innovative projects and participate in hackathons.',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
+  const { currentUser, updateProfile, getProfile } = useAuth();
+  const [form, setForm] = useState<ProfileForm>({
+    name: "",
+    bio: "",
+    location: "",
+    skills: [],
+    avatarFile: null,
+    avatar: "",
+    resumeFile: null,
+    resumeUrl: "",
+    yearOfAdmission: "",
+    yearOfGraduation: "",
+    course: "",
+    branch: "",
+    college: "",
+    website: "",
+    linkedin: "",
+    github: "",
+    activities: [],
+  });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentUser && !form.name) {
+      setForm((prev) => ({
+        ...prev,
+        name: currentUser.name || "",
+        bio: currentUser.bio || "",
+        location: currentUser.location || "",
+        skills: Array.isArray(currentUser.skills)
+          ? currentUser.skills
+          : currentUser.skills
+          ? [currentUser.skills]
+          : [],
+        avatar: currentUser.avatar || "",
+        resumeUrl: currentUser.resumeUrl || "",
+        yearOfAdmission: currentUser.yearOfAdmission || "",
+        yearOfGraduation: currentUser.yearOfGraduation || "",
+        course: currentUser.course || "",
+        branch: currentUser.branch || "",
+        college: currentUser.college || "",
+        website: currentUser.website || "",
+        linkedin: currentUser.linkedin || "",
+        github: currentUser.github || "",
+        activities: Array.isArray(currentUser.activities)
+        ? currentUser.activities
+        : [],
+      }));
+    } else {
+      getProfile();
+    }
+  }, [currentUser]);
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+
+   Object.entries(form).forEach(([key, value]) => {
+  if ((key === "avatarFile" || key === "resumeFile") && value instanceof File) {
+    formData.append(key === "avatarFile" ? "avatar" : "resume", value);
+  } else if (key === "skills" || key === "activities") {
+    formData.append(key, JSON.stringify(value)); // <-- send as JSON string
+  } else if (typeof value === "string") {
+    formData.append(key, value);
+  }
+});
+
+
+      // Send formData to backend
+ const updatedProfile = await updateProfile(formData);
+setForm((prev) => ({
+  ...prev,
+  ...updatedProfile,
+  avatarFile: null,
+  resumeFile: null,
+}));
+
+
+      toast.success("Profile updated successfully!");
+      setIsEditing(false);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update profile.");
+    } finally {
+      setLoading(false);
+    }
   };
+  
+
+  if (!currentUser)
+    return (
+      <p className="text-center mt-12 text-gray-600">Loading Profile...</p>
+    );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Profile Header */}
-      <div className="bg-white rounded-xl shadow-sm p-8">
-        <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-8">
-          <img
-            src={user.image}
-            alt={user.name}
-            className="w-32 h-32 rounded-full object-cover"
-          />
-          <div className="flex-1 text-center md:text-left">
-            <h1 className="text-3xl font-bold text-gray-900">{user.name}</h1>
-            <p className="text-lg text-gray-600">{user.role}</p>
-            <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-4">
-              <div className="flex items-center text-gray-600">
-                <MapPin className="h-4 w-4 mr-1" />
-                {user.location}
-              </div>
-              <div className="flex items-center text-gray-600">
-                <Calendar className="h-4 w-4 mr-1" />
-                Member since {user.joinDate}
-              </div>
-            </div>
-          </div>
-          <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-            Edit Profile
-          </button>
+    <div className="max-w-6xl mx-auto p-6 space-y-8">
+      {/* Header */}
+      <ProfileHeader
+        form={form}
+        setForm={setForm}
+        isEditing={isEditing}
+        setIsEditing={setIsEditing}
+        loading={loading}
+        handleSubmit={handleSubmit}
+        currentUser={currentUser}
+      />
+
+      {/* Bio + Extra Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <ProfileBio form={form} setForm={setForm} isEditing={isEditing} />
+          <ProfileSkills form={form} setForm={setForm} isEditing={isEditing} />
+          <ProfileResume form={form} setForm={setForm} isEditing={isEditing} />
         </div>
+
+        <ProfileExtraFields
+          form={form}
+          setForm={setForm}
+          isEditing={isEditing}
+        />
       </div>
 
-      {/* Bio Section */}
-      <div className="bg-white rounded-xl shadow-sm p-8">
-        <h2 className="text-xl font-semibold mb-4">About Me</h2>
-        <p className="text-gray-600">{user.bio}</p>
-      </div>
+      {/* Recent Activity */}
+      <ProfileActivity
+  form={form}
+  setForm={setForm}
+  isEditing={isEditing}
+/>
 
-      {/* Skills Section */}
-      <div className="bg-white rounded-xl shadow-sm p-8">
-        <h2 className="text-xl font-semibold mb-4">Skills</h2>
-        <div className="flex flex-wrap gap-2">
-          {user.skills.map((skill) => (
-            <span
-              key={skill}
-              className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm"
-            >
-              {skill}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Activity Section */}
-      <div className="bg-white rounded-xl shadow-sm p-8">
-        <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-        <div className="space-y-4">
-          <div className="flex items-start space-x-4">
-            <Code className="h-5 w-5 text-indigo-600 mt-1" />
-            <div>
-              <p className="font-medium">Participated in College Hackathon 2024</p>
-              <p className="text-sm text-gray-600">Won 2nd place with project "EcoTrack"</p>
-            </div>
-          </div>
-          <div className="flex items-start space-x-4">
-            <Briefcase className="h-5 w-5 text-indigo-600 mt-1" />
-            <div>
-              <p className="font-medium">Completed Summer Internship</p>
-              <p className="text-sm text-gray-600">Software Engineer Intern at Tech Corp</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
