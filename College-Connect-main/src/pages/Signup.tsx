@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User, GraduationCap } from "lucide-react";
+import { Mail, Lock, User, GraduationCap, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 
@@ -28,7 +28,9 @@ const Signup = () => {
     if (formData.role === "student" && email.includes("@")) {
       const domain = email.split("@")[1].toLowerCase();
       setEmailError(
-        !allowedColleges.includes(domain) ? "Use a valid college email address" : ""
+        !allowedColleges.includes(domain)
+          ? "Use a valid college email address"
+          : ""
       );
     } else {
       setEmailError("");
@@ -53,11 +55,18 @@ const Signup = () => {
 
     try {
       setLoading(true);
-      await signup(formData.name, formData.email, formData.password, formData.role);
+      await signup(
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.role
+      );
       toast.success("Account created successfully!");
       navigate("/");
     } catch (error: any) {
-      toast.error(error.message || "Failed to create account. Please try again.");
+      toast.error(
+        error.message || "Failed to create account. Please try again."
+      );
       console.error("Signup error:", error);
     } finally {
       setLoading(false);
@@ -65,32 +74,39 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="bg-white rounded-xl shadow-md p-8 sm:p-10">
-          <div className="text-center mb-6 sm:mb-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
+      <div className="w-full sm:max-w-md">
+        <div className="bg-white rounded-2xl shadow-lg p-8 sm:p-10">
+          {/* Header */}
+          <div className="text-center mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               Create Account
             </h1>
-            <p className="text-gray-600 mt-2 sm:text-sm">
+            <p className="text-gray-600 mt-2 text-sm">
               Join the college community
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Full Name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <User className="absolute inset-y-0 left-3 my-auto text-gray-400 h-5 w-5" />
                 <input
                   id="name"
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="pl-10 w-full p-3 sm:p-3.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  className="pl-10 w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                   placeholder="Enter your full name"
                   required
                   disabled={loading}
@@ -100,65 +116,84 @@ const Signup = () => {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Mail className="absolute inset-y-0 left-3 my-auto text-gray-400 h-5 w-5" />
                 <input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={handleEmailChange}
-                  className="pl-10 w-full p-3 sm:p-3.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="pl-10 w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                   placeholder="Enter your email"
                   required
                   disabled={loading}
                 />
               </div>
-              {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
+              {emailError && (
+                <p className="text-red-500 text-sm mt-1">{emailError}</p>
+              )}
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Lock className="absolute inset-y-0 left-3 my-auto text-gray-400 h-5 w-5" />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={handlePasswordChange}
-                  className="pl-10 w-full p-3 sm:p-3.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="pl-10 pr-12 w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                   placeholder="Create a password"
                   required
                   disabled={loading}
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
+                  className="absolute inset-y-0 right-3 my-auto text-gray-400 hover:text-gray-600"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
-              {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+              )}
             </div>
 
             {/* Role */}
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 I am a...
               </label>
               <div className="relative">
-                <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <GraduationCap className="absolute inset-y-0 left-3 my-auto text-gray-400 h-5 w-5" />
                 <select
                   id="role"
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="pl-10 w-full p-3 sm:p-3.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  onChange={(e) =>
+                    setFormData({ ...formData, role: e.target.value })
+                  }
+                  className="pl-10 w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                   required
                   disabled={loading}
                 >
@@ -172,17 +207,21 @@ const Signup = () => {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full py-3 sm:py-3.5 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+              className="w-full py-3 px-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-50"
               disabled={loading || emailError !== "" || passwordError !== ""}
             >
               {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
 
+          {/* Footer */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Already have an account?{" "}
-              <Link to="/login" className="text-indigo-600 hover:text-indigo-500">
+              <Link
+                to="/login"
+                className="text-indigo-600 hover:text-indigo-500 font-medium"
+              >
                 Sign in
               </Link>
             </p>
