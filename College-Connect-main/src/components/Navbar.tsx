@@ -45,7 +45,7 @@ const Navbar = () => {
     }
   };
 
-  // ✅ Detect scroll
+  //  Detect scroll
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 20) setScrolled(true);
