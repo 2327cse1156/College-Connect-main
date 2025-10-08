@@ -19,9 +19,35 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    studentUrl: {
+      type: String,
+      default: "",
+    },
+    rejectionReason: {
+      type: String,
+      default: "",
+    },
+    verifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    verificationDate: {
+      type: Date,
+      default: null,
+    },
+    isAdmin: {
+      type: Boolean,
+      default: false,
+    },
     role: {
       type: String,
-      enum: ["student", "senior", "alumni"],
+      enum: ["student", "senior", "alumni", "admin"],
       default: "student",
     },
     bio: {
@@ -50,19 +76,19 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
     course: {
-      type: String, 
+      type: String,
       default: "",
     },
     branch: {
-      type: String, 
+      type: String,
       default: "",
     },
     college: {
-      type: String, 
+      type: String,
       default: "",
     },
-     resumeUrl: {
-      type: String, 
+    resumeUrl: {
+      type: String,
       default: "",
     },
 
@@ -80,17 +106,24 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
     activities: [
-  {
-    title: { type: String, required: true },
-    description: { type: String, default: "" },
-    type: { type: String, enum: ["code", "work"], default: "code" },
-  },
-],
+      {
+        title: { type: String, required: true },
+        description: { type: String, default: "" },
+        type: {
+          type: String,
+          enum: ["code", "work", "achievement"],
+          default: "code",
+        },
+      },
+    ],
 
     resetPasswordToken: String,
     resetPasswordExpires: Date,
   },
   { timestamps: true }
 );
+
+userSchema.index({ verificationStatus: 1 });
+userSchema.index({ email: 1 });
 
 export default mongoose.model("User", userSchema);
