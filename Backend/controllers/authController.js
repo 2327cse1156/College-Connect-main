@@ -2,6 +2,8 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
+import cloudinary from "../config/cloudinary.js";
+import fs from "fs";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -27,7 +29,7 @@ const sendTokenCookie = (res, user) => {
   });
 };
 
-// ---------------- SIGNUP ----------------
+// ---------------- SIGNUP (WITH STUDENT ID VERIFICATION) ----------------
 export const signup = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -43,10 +45,20 @@ export const signup = async (req, res) => {
       "nit.edu",
     ];
 
+    // ✅ Student email + ID verification
     if (role === "student") {
       const emailDomain = email.split("@")[1];
       if (!allowedDomains.includes(emailDomain))
-        return res.status(400).json({ error: "Kindly use a valid college email" });
+        return res
+          .status(400)
+          .json({ error: "Kindly use a valid college email" });
+
+      // ✅ Student ID is required
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ error: "Student ID card is required for verification" });
+      }
     }
 
     const existingUser = await User.findOne({ email });
@@ -54,18 +66,83 @@ export const signup = async (req, res) => {
       return res.status(400).json({ error: "User already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ✅ Upload student ID to Cloudinary
+    let studentIdUrl = "";
+    if (role === "student" && req.file) {
+      try {
+        const uploadedId = await cloudinary.uploader.upload(req.file.path, {
+          folder: "student-ids",
+          resource_type: "auto", // Supports images and PDFs
+        });
+        studentIdUrl = uploadedId.secure_url;
+        fs.unlinkSync(req.file.path); // Delete temp file
+      } catch (uploadError) {
+        console.error("Cloudinary upload error:", uploadError);
+        return res.status(500).json({ error: "Failed to upload student ID" });
+      }
+    }
+
+    // ✅ Create user with verification
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       role: role || "student",
+      verificationStatus: role === "student" ? "pending" : "approved",
+      studentIdUrl: studentIdUrl,
+      isAdmin: false,
     });
 
-    sendTokenCookie(res, user);
+    // ✅ Send welcome email for students
+    if (role === "student") {
+      try {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: user.email,
+          subject: "Welcome to CollegeConnect - Account Under Review",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #4F46E5;">Welcome to CollegeConnect, ${name}! 🎓</h2>
+              <p>Your account has been created successfully.</p>
+              <div style="background: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0;"><strong>Account Status:</strong> <span style="color: #F59E0B;">Pending Verification</span></p>
+              </div>
+              <p>Our admin team will review your student ID and verify your account within 24-48 hours.</p>
+              <p>You'll receive an email once your account is approved.</p>
+              <br/>
+              <p style="color: #6B7280;">Thanks,<br/>CollegeConnect Team</p>
+            </div>
+          `,
+        });
+      } catch (emailErr) {
+        console.error("Email send error:", emailErr);
+      }
+    }
 
-    res.status(201).json({ user, success: true, message: "User Registered Successfully" });
+    if (role !== "student") {
+      sendTokenCookie(res, user);
+    }
+
+    res.status(201).json({
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        verificationStatus: user.verificationStatus,
+      },
+      success: true,
+      message:
+        role === "student"
+          ? "Account created! Please wait for admin verification."
+          : "User registered successfully",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Signup failed", details: error.message });
+    console.error("Signup error:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Signup failed", details: error.message });
   }
 };
 
@@ -82,11 +159,44 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "Invalid password" });
 
+    if (user.verificationStatus === "pending") {
+      return res.status(403).json({
+        error: "Account pending verification.",
+        verificationStatus: "pending",
+        message:
+          "Your account is under review. Please wait for admin approval.",
+      });
+    }
+
+    if (user.verificationStatus === "rejected") {
+      return res.status(403).json({
+        error: "Account verification rejected",
+        verificationStatus: "rejected",
+        rejectionReason:
+          user.rejectionReason || "Please contact admin for details.",
+        message: "Your account was not approved.",
+      });
+    }
+
     sendTokenCookie(res, user);
 
-    res.status(200).json({ user, success: true, message: "Logged in successfully" });
+    res.status(200).json({
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        verificationStatus: user.verificationStatus,
+        isAdmin: user.isAdmin,
+      },
+      success: true,
+      message: "Logged in successfully",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Login failed", details: error.message });
+    console.error("Login error:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Login failed", details: error.message });
   }
 };
 
@@ -100,7 +210,9 @@ export const logout = async (req, res) => {
     });
     res.status(200).json({ success: true, message: "Logged out successfully" });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Logout failed", details: error.message });
+    res
+      .status(500)
+      .json({ success: false, error: "Logout failed", details: error.message });
   }
 };
 
@@ -113,7 +225,9 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_RESET_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_RESET_SECRET, {
+      expiresIn: "1h",
+    });
     const resetUrl = `http://localhost:5173/reset-password?token=${token}`;
 
     await transporter.sendMail({
@@ -132,7 +246,10 @@ export const forgotPassword = async (req, res) => {
 // ---------------- RESET PASSWORD ----------------
 export const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
-  if (!token || !newPassword) return res.status(400).json({ error: "Token and new password are required" });
+  if (!token || !newPassword)
+    return res
+      .status(400)
+      .json({ error: "Token and new password are required" });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_RESET_SECRET);
@@ -144,7 +261,8 @@ export const resetPassword = async (req, res) => {
 
     res.status(200).json({ message: "Password reset successful" });
   } catch (err) {
-    if (err.name === "TokenExpiredError") return res.status(400).json({ error: "Token has expired" });
+    if (err.name === "TokenExpiredError")
+      return res.status(400).json({ error: "Token has expired" });
     res.status(400).json({ error: "Invalid token" });
   }
 };
