@@ -23,6 +23,9 @@ interface User {
   resumeUrl?: string;
   college?: string;
   activities?: { title: string; description: string; type?: string }[];
+  verificationStatus?: "pending" | "approved" | "rejected";
+  studentIdUrl?: string;
+  rejectionReason?: string;
 }
 
 interface AuthContextType {
@@ -32,7 +35,8 @@ interface AuthContextType {
     name: string,
     email: string,
     password: string,
-    role: string
+    role: string,
+    studentIdFile?: File | null
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
@@ -93,9 +97,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         res.data.user.verificationStatus === "pending"
       ) {
         toast.success(
-          "✅ Account created! Please wait for admin verification."
+          "✅ Account created! Please wait for admin verification.",
+          { duration: 5000 }
         );
-        setCurrentUser(null); // Do NOT log them in yet
+        setCurrentUser(null);
         return;
       }
 
@@ -121,7 +126,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setCurrentUser(res.data.user);
       toast.success("Logged in successfully!");
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Login failed");
+      const errorData = err.response?.data;
+      if (errorData?.verificationStatus === "pending") {
+        toast.error(
+          "⏳ Your account is pending verification. Please wait for admin approval.",
+          { duration: 5000 }
+        );
+      } else if (errorData?.verificationStatus === "rejected") {
+        toast.error(
+          `❌ Account rejected: ${
+            errorData.rejectionReason || "Contact admin for details"
+          }`,
+          { duration: 6000 }
+        );
+      }
+      else{
+        toast.error(errorData?.error || "Login failed");
+      }
       throw err;
     } finally {
       setLoading(false);

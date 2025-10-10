@@ -28,6 +28,7 @@ const Signup = () => {
   const [studentIdFile, setStudentIdFile] = useState<File | null>(null);
   const [studentIdPreview, setStudentIdPreview] = useState<string>("");
   const [fileError, setFileError] = useState<string>("");
+
   const navigate = useNavigate();
   const { signup } = useAuth();
 
@@ -58,9 +59,22 @@ const Signup = () => {
     );
   };
 
+  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newRole = e.target.value;
+    setFormData({ ...formData, role: newRole });
+    if (newRole !== "student") {
+      setStudentIdFile(null);
+      setStudentIdPreview("");
+      setFileError("");
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log("No file selected");
+      return;
+    }
 
     const allowedTypes = [
       "image/jpeg",
@@ -70,21 +84,29 @@ const Signup = () => {
     ];
     if (!allowedTypes.includes(file.type)) {
       setFileError("Only JPG, PNG, and PDF files are allowed");
+      setStudentIdFile(null);
+      return;
     }
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       setFileError("File size must be less than 5MB");
+      setStudentIdFile(null);
       return;
     }
+    console.log("File Validation passed");
+    setFileError("");
+    setStudentIdFile(file);
 
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setStudentIdPreview(reader.result as string);
+        console.log("Preview Generated");
       };
       reader.readAsDataURL(file);
     } else {
       setStudentIdPreview("");
+      console.log("PDF selected, no preview");
     }
   };
 
@@ -94,8 +116,17 @@ const Signup = () => {
     setFileError("");
   };
 
+  const fileInput = document.querySelector(
+    'input[type="file]'
+  ) as HTMLInputElement;
+  if (fileInput) fileInput.value = "";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Form Submitted");
+    console.log("Role:", formData.role);
+    console.log("Student ID File: ", studentIdFile);
+
     if (emailError || passwordError || fileError) {
       toast.error("Please fix the errors before submitting");
       return;
@@ -103,11 +134,19 @@ const Signup = () => {
 
     if (formData.role === "student" && !studentIdFile) {
       toast.error("Please upload your student ID card");
+      console.log("No student Id Card Uploaded");
+
       return;
     }
 
     try {
       setLoading(true);
+      console.log("Calling signup with:", {
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        hasFile: !!studentIdFile,
+      });
       await signup(
         formData.name,
         formData.email,
@@ -123,6 +162,7 @@ const Signup = () => {
       }
       navigate("/");
     } catch (error: any) {
+      console.error("Signup Error:", error);
       toast.error(
         error.message || "Failed to create account. Please try again."
       );
@@ -249,9 +289,7 @@ const Signup = () => {
                 <select
                   id="role"
                   value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value })
-                  }
+                  onChange={handleRoleChange}
                   className="pl-10 w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                   required
                   disabled={loading}
@@ -295,6 +333,7 @@ const Signup = () => {
                       onClick={removeFile}
                       className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
                       disabled={loading}
+                      title="Remove file"
                     >
                       <X className="w-4 h-4"></X>
                     </button>
@@ -312,18 +351,40 @@ const Signup = () => {
                         </span>
                       </div>
                     )}
+                    <p className="text-center text-xs text-green-600 font-medium mt-2">
+                      ✓ File uploaded successfully
+                    </p>
                   </div>
                 )}
-                {fileError && (<p className="text-red-500 text-sm mt-1">{fileError}</p>)}
-                <p className="text-xs text-gray-500 mt-2">⚠️ Your account will be verified by admin within 24-48 hours</p>
+                {fileError && (
+                  <p className="text-red-500 text-sm mt-1">{fileError}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  ⚠️ Your account will be verified by admin within 24-48 hours
+                </p>
               </div>
             )}
+            {process.env.NODE_ENV === "development" &&
+              formData.role === "student" && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-xs">
+                  <p>
+                    <strong>Debug:</strong>
+                  </p>
+                  <p>File selected: {studentIdFile ? "✓ Yes" : "✗ No"}</p>
+                  {studentIdFile && <p>File name: {studentIdFile.name}</p>}
+                </div>
+              )}
 
             {/* Submit */}
             <button
               type="submit"
               className="w-full py-3 px-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-50"
-              disabled={loading || emailError !== "" || passwordError !== "" || fileError!==""}
+              disabled={
+                loading ||
+                emailError !== "" ||
+                passwordError !== "" ||
+                fileError !== ""
+              }
             >
               {loading ? "Creating Account..." : "Create Account"}
             </button>
