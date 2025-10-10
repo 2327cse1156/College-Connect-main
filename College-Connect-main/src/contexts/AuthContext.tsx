@@ -25,7 +25,6 @@ interface User {
   activities?: { title: string; description: string; type?: string }[];
 }
 
-
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
@@ -69,17 +68,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     name: string,
     email: string,
     password: string,
-    role: string
+    role: string,
+    studentIdFile?: File | null
   ) => {
     setLoading(true);
     try {
-      const res = await axios.post(
-        `${API_URL}/signup`,
-        { name, email, password, role },
-        { withCredentials: true }
-      );
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("email", email);
+      formData.append("password", password);
+      formData.append("role", role);
+
+      if (studentIdFile) {
+        formData.append("studentId", studentIdFile);
+      }
+
+      const res = await axios.post(`${API_URL}/signup`, formData, {
+        withCredentials: true,
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (
+        res.data.user.role === "student" &&
+        res.data.user.verificationStatus === "pending"
+      ) {
+        toast.success(
+          "✅ Account created! Please wait for admin verification."
+        );
+        setCurrentUser(null); // Do NOT log them in yet
+        return;
+      }
+
       setCurrentUser(res.data.user);
-      toast.success("Account created successfully!");
+      toast.success("🎉 Account created successfully!");
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Signup failed");
       throw err;
