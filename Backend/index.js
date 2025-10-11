@@ -5,7 +5,7 @@ import connectDB from "./config/db.js";
 import auth from "./routes/auth.js"
 import cookieParser from "cookie-parser";
 import profileRoutes from "./routes/profile.js"
-import path from "path";
+import adminRoutes from "./routes/admin.js"
 dotenv.config();
 const app = express();
 
@@ -17,6 +17,7 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
+app.use("/api/admin", adminRoutes)
 
 const PORT = process.env.PORT || 5000;
 

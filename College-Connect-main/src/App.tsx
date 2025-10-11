@@ -1,5 +1,5 @@
 // import React from 'react';
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./contexts/AuthContext";
 import Navbar from "./components/Navbar";
@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AdminDashboard from "./components/AdminDashboard.tsx";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/admin" element={<AdminDashboard/>}/>
           </Routes>
         </main>
         <Footer />
