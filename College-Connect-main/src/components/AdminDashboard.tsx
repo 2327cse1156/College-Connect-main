@@ -2,7 +2,6 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Users, CheckCircle, XCircle, Clock, Eye, X, User } from "lucide-react";
-import { p, tr } from "framer-motion/m";
 
 interface User {
   _id: string;
@@ -254,6 +253,8 @@ function AdminDashboard() {
               <button
                 onClick={() => setShowModal(false)}
                 className="text-gray-400 hover:text-gray-600"
+                title="Close"
+                aria-label="Close"
               >
                 <X className="w-6 h-6"></X>
               </button>

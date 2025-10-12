@@ -276,8 +276,18 @@ const Signup = () => {
               )}
             </div>
 
+            <input type="hidden" name="role" value="student" />
+
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <p className="text-sm text-blue-800">
+                <strong>📚 Students Only:</strong>Currently accepting student
+                registrations. Your role will be automatically updated as you
+                prgress through your academic journey.
+              </p>
+            </div>
+
             {/* Role */}
-            <div>
+            {/* <div>
               <label
                 htmlFor="role"
                 className="block text-sm font-medium text-gray-700 mb-1"
@@ -299,7 +309,7 @@ const Signup = () => {
                   <option value="alumni">Alumni</option>
                 </select>
               </div>
-            </div>
+            </div> */}
 
             {formData.role === "student" && (
               <div>
