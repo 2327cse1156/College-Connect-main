@@ -7,7 +7,7 @@ const hackathonSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    desctiption: {
+    description: {
       type: String,
       required: true,
     },
@@ -49,7 +49,7 @@ const hackathonSchema = new mongoose.Schema(
       default: "",
     },
     expectedParticipants: {
-      type: String,
+      type: Number,
       default: "",
     },
     registrationOpen: {
@@ -69,7 +69,7 @@ const hackathonSchema = new mongoose.Schema(
       default: [],
     },
     requirements: {
-      tyoe: String,
+      type: String,
       default: "",
     },
     registeredUsers: [

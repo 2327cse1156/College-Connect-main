@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import profileRoutes from "./routes/profile.js"
 import adminRoutes from "./routes/admin.js"
 import roleTranstionRoutes from "./routes/roleTransition.js"
+import hackathonRoutes from "./routes/hackathon.js"
 dotenv.config();
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 app.use("/api/admin", adminRoutes)
 app.use("/api/role-transition", roleTranstionRoutes)
+app.use("/api/hackathons",hackathonRoutes)
 
 const PORT = process.env.PORT || 5000;
 
