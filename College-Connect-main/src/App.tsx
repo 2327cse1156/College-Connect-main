@@ -16,6 +16,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./components/AdminDashboard.tsx";
+import ManageHackathons from "./pages/ManageHackathons.tsx";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin" element={<AdminDashboard/>}/>
+            <Route path="/admin/hackathons" element={<ManageHackathons/>}/>
           </Routes>
         </main>
         <Footer />

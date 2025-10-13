@@ -49,7 +49,7 @@ const hackathonSchema = new mongoose.Schema(
       default: "",
     },
     expectedParticipants: {
-      type: Number,
+      type: String,
       default: "",
     },
     registrationOpen: {

@@ -1,5 +1,5 @@
 import User from "../models/User.js";
-export const adminMiddleware = async (req, resizeBy, next) => {
+export const adminMiddleware = async (req, res, next) => {
   try {
     if (!req.user) {
       return resizeBy.status(401).json({ error: "Authentication required" });
