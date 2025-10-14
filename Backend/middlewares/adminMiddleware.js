@@ -2,7 +2,7 @@ import User from "../models/User.js";
 export const adminMiddleware = async (req, res, next) => {
   try {
     if (!req.user) {
-      return resizeBy.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: "Authentication required" });
     }
     const user = await User.findById(req.user._id);
 

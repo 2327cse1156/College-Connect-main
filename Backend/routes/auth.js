@@ -5,6 +5,7 @@ import {
   forgotPassword,
   resetPassword,
   logout,
+  validateResetToken,
 } from "../controllers/authController.js";
 import {upload} from "../middlewares/upload.js"
 
@@ -15,5 +16,6 @@ router.post("/login", login);
 router.post("/logout", logout);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+router.post("/validate-token", validateResetToken)
 
 export default router;

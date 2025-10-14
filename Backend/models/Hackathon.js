@@ -26,7 +26,6 @@ const hackathonSchema = new mongoose.Schema(
     location: {
       type: String,
       required: true,
-      type: String,
       trim: true,
     },
     type: {

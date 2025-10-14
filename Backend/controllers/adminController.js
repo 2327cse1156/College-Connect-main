@@ -91,7 +91,7 @@ export const approveUser = async (req, res) => {
         `,
       });
     } catch (error) {
-      console.error("Email send error:", emailErr);
+      console.error("Email send error:", error);
     }
     res.status(200).json({
       success: true,

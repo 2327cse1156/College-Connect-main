@@ -62,12 +62,18 @@ export const autoUpgradeRoles = async (req, res) => {
       verificationStatus: "approved",
       yearOfGraduation: { $lt: currentYear.toString() },
     });
-    try {
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: user.email,
-        subject: "🎓 Welcome to Alumni Network - CollegeConnect",
-        html: `
+
+    for (const user of seniorsToAlumni) {
+      user.role = "alumni";
+      await user.save();
+      upgradedCount++;
+
+      try {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: user.email,
+          subject: "🎓 Welcome to Alumni Network - CollegeConnect",
+          html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #10B981;">Welcome to the Alumni Network, ${user.name}! 🎊</h2>
               <p>Congratulations on your graduation! Your role has been updated to <strong>Alumni</strong>.</p>
@@ -97,9 +103,10 @@ export const autoUpgradeRoles = async (req, res) => {
               <p style="color: #6B7280;">Congratulations once again!<br/>- CollegeConnect Team</p>
             </div>
           `,
-      });
-    } catch (emailErr) {
-      console.error("Email error:", emailErr);
+        });
+      } catch (emailErr) {
+        console.error("Email error:", emailErr);
+      }
     }
 
     const overdueStudents = await User.find({
@@ -151,7 +158,6 @@ export const autoUpgradeRoles = async (req, res) => {
     });
   }
 };
-
 
 export const getUpgradePreview = async (req, res) => {
   try {

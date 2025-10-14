@@ -1,11 +1,13 @@
-import React, { useState } from "react";
-import { Mail } from "lucide-react";
+import { useState } from "react";
+import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false); // ✅ Track email sent state
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +23,7 @@ const ForgotPassword = () => {
       });
 
       toast.success("Reset link sent! Check your email.");
-      setEmail(""); // reset input field
+      setEmailSent(true); // ✅ Show success state
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to send reset email");
       console.error("Forgot password error:", err);
@@ -30,15 +32,81 @@ const ForgotPassword = () => {
     }
   };
 
+  // ✅ Success State - Show confirmation message
+  if (emailSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8 sm:p-10 text-center">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+            <CheckCircle className="h-10 w-10 text-green-600" />
+          </div>
+          
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+            Check Your Email
+          </h1>
+          
+          <p className="text-gray-600 mb-2">
+            We've sent a password reset link to:
+          </p>
+          <p className="text-indigo-600 font-medium mb-6">{email}</p>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+            <p className="text-sm text-blue-800">
+              <strong>📧 Next Steps:</strong>
+            </p>
+            <ol className="text-sm text-blue-800 mt-2 ml-4 list-decimal space-y-1">
+              <li>Open your email inbox</li>
+              <li>Click the reset password link</li>
+              <li>Create your new password</li>
+              <li>Login with new credentials</li>
+            </ol>
+          </div>
+
+          <p className="text-xs text-gray-500 mb-6">
+            ⏱️ The link will expire in 1 hour
+          </p>
+
+          <div className="space-y-3">
+            <Link
+              to="/login"
+              className="block w-full py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            >
+              Back to Login
+            </Link>
+            
+            <button
+              onClick={() => {
+                setEmailSent(false);
+                setEmail("");
+              }}
+              className="block w-full py-3 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+            >
+              Send to Different Email
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Form State - Show email input
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8 sm:p-10">
+        <Link
+          to="/login"
+          className="inline-flex items-center text-sm text-gray-600 hover:text-indigo-600 mb-6 transition"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Back to Login
+        </Link>
+
         <div className="text-center mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Forgot Password
+            Forgot Password?
           </h1>
           <p className="text-gray-600 mt-2">
-            Enter your email to reset your password
+            No worries, we'll send you reset instructions
           </p>
         </div>
 
@@ -67,12 +135,24 @@ const ForgotPassword = () => {
 
           <button
             type="submit"
-            className="w-full py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+            className="w-full py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={loading}
           >
             {loading ? "Sending..." : "Send Reset Link"}
           </button>
         </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Remember your password?{" "}
+            <Link
+              to="/login"
+              className="text-indigo-600 hover:text-indigo-500 font-medium"
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

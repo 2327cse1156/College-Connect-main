@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
-    studentUrl: {
+    studentIdUrl: {
       type: String,
       default: "",
     },
@@ -125,5 +125,6 @@ const userSchema = new mongoose.Schema(
 
 userSchema.index({ verificationStatus: 1 });
 userSchema.index({ email: 1 });
+userSchema.index({role:1});
 
 export default mongoose.model("User", userSchema);

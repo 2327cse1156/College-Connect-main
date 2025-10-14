@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Lock } from "lucide-react";
+import { Lock, CheckCircle } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -9,6 +9,7 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [validToken, setValidToken] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false); // ✅ Track reset success
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -17,7 +18,7 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const token = searchParams.get("token");
 
-  // 🔹 Validate token before showing form
+  // ✅ Validate token before showing form
   useEffect(() => {
     const validateToken = async () => {
       if (!token) {
@@ -38,6 +39,16 @@ const ResetPassword = () => {
     validateToken();
   }, [token, navigate]);
 
+  // ✅ Auto redirect after 3 seconds on success
+  useEffect(() => {
+    if (resetSuccess) {
+      const timer = setTimeout(() => {
+        navigate("/login");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [resetSuccess, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) {
@@ -56,7 +67,7 @@ const ResetPassword = () => {
         newPassword: password,
       });
       toast.success("Password reset successfully!");
-      navigate("/login");
+      setResetSuccess(true); // ✅ Show success state
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to reset password");
       console.error("Reset password error:", err);
@@ -73,6 +84,41 @@ const ResetPassword = () => {
     );
   }
 
+  // ✅ Success State - Show confirmation with countdown
+  if (resetSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8 sm:p-10 text-center">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+            <CheckCircle className="h-10 w-10 text-green-600" />
+          </div>
+          
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+            Password Reset Successfully!
+          </h1>
+          
+          <p className="text-gray-600 mb-6">
+            Your password has been changed. You can now login with your new password.
+          </p>
+
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-indigo-800">
+              🔄 Redirecting to login page in 3 seconds...
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate("/login")}
+            className="w-full py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          >
+            Go to Login Now
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Form State - Show password reset form
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8 sm:p-10">
@@ -112,6 +158,11 @@ const ResetPassword = () => {
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
+            {password && password.length < 6 && (
+              <p className="text-red-500 text-xs mt-1">
+                Must be at least 6 characters
+              </p>
+            )}
           </div>
 
           {/* Confirm Password */}
@@ -142,13 +193,18 @@ const ResetPassword = () => {
                 {showConfirm ? "Hide" : "Show"}
               </button>
             </div>
+            {confirmPassword && password !== confirmPassword && (
+              <p className="text-red-500 text-xs mt-1">
+                Passwords do not match
+              </p>
+            )}
           </div>
 
           {/* Submit */}
           <button
             type="submit"
             className="w-full py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
-            disabled={loading}
+            disabled={loading || password.length < 6 || password !== confirmPassword}
           >
             {loading ? "Resetting..." : "Reset Password"}
           </button>

@@ -50,15 +50,17 @@ function ManageHackathons() {
 
   const fetchHackathons = async () => {
     try {
-      const res = await axios.get(`${API_URL}/hackathons`,{withCredentials:true});
+      const res = await axios.get(`${API_URL}/hackathons`, {
+        withCredentials: true,
+      });
       setHackathons(res.data.hackathons);
     } catch (error) {
       toast.error("Failed to load hackathons");
     }
   };
-  useEffect(()=>{
+  useEffect(() => {
     fetchHackathons();
-  },[])
+  }, []);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -136,7 +138,7 @@ function ManageHackathons() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 sm:gap-0">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               Manage Hackathons
@@ -147,7 +149,7 @@ function ManageHackathons() {
           </div>
           <button
             onClick={openAddModal}
-            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
             title="Add Hackathon"
           >
             <Plus className="mr-2 w-5 h-5" />
@@ -155,7 +157,7 @@ function ManageHackathons() {
           </button>
         </div>
         <div className="bg-white rounded-xl shadow overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full hidden md:table">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-6 p-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -208,23 +210,61 @@ function ManageHackathons() {
               ))}
             </tbody>
           </table>
+          <div className="md:hidden space-y-4">
+            {hackathons.map((h: any) => (
+              <div
+                key={h._id}
+                className="bg-gray-50 rounded-lg p-4 shadow flex flex-col gap-2"
+              >
+                <div className="flex justify-between items-start">
+                  <h2 className="font-bold text-gray-900">{h.title}</h2>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(h)}
+                      className="text-indigo-600 hover:text-indigo-800"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(h._id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-gray-600">
+                  {h.location} • {h.type}
+                </p>
+                <p className="text-gray-500">
+                  Start: {new Date(h.startDate).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-xl max-w-2xl w-full my-8">
-            <div className="flex justify-between items-center p-6 border-b">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-2xl w-full my-8 shadow-lg p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-6">
+              <h2 className="text-xl font-bold">
+                {editMode ? "Edit Hackathon" : "Add Hackathon"}
+              </h2>
               <button onClick={() => setShowModal(false)} title="Close Modal">
-                <X className="w-6 h-6" />
-              </button>
-              <button onClick={() => setShowModal(false)}>
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium mb-1">
                     Title *
