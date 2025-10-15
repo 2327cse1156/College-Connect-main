@@ -8,6 +8,7 @@ import profileRoutes from "./routes/profile.js"
 import adminRoutes from "./routes/admin.js"
 import roleTranstionRoutes from "./routes/roleTransition.js"
 import hackathonRoutes from "./routes/hackathon.js"
+import networkRoutes from "./routes/network.js";
 dotenv.config();
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/admin", adminRoutes)
 app.use("/api/role-transition", roleTranstionRoutes)
 app.use("/api/hackathons",hackathonRoutes)
+app.use("/api/network", networkRoutes);
 
 const PORT = process.env.PORT || 5000;
 

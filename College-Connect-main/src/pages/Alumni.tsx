@@ -1,177 +1,268 @@
-// import React from 'react';
-import {  Calendar, Users } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Calendar, Users, Search, Filter, Mail, Linkedin, Github, ExternalLink } from "lucide-react";
+import axios from "axios";
+import toast from "react-hot-toast";
+
+interface Alumni {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+  skills: string[];
+  bio?: string;
+  college?: string;
+  yearOfGraduation?: string;
+  course?: string;
+  branch?: string;
+  location?: string;
+  linkedin?: string;
+  github?: string;
+  website?: string;
+}
 
 const Alumni = () => {
-  const alumni = [
-    {
-      id: 1,
-      name: 'Shalu Singh',
-      role: 'Senior Software Engineer',
-      company: 'Zomato',
-      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
-      expertise: ['Web Development', 'System Design', 'Cloud Architecture','LINUX'],
-      available: true,
-      graduationYear: '2019',
-    },
-    {
-      id: 2,
-      name: 'Shaurya Awasthi',
-      role: 'AACE',
-      company: 'Accenture',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
-      expertise: ['Product Strategy', 'Agile', 'Tech Leadership'],
-      available: true,
-      graduationYear: '2023',
-    },
-    {
-      id: 3,
-      name: 'Tanisha Chaudhary',
-      role: 'Mechanical Engineer',
-      company: 'Mahindra',
-      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
-      expertise: ['Product Design', 'Computer Vision', 'Python'],
-      available: false,
-      graduationYear: '2020',
-    },
-  ];
+  const [alumni, setAlumni] = useState<Alumni[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [collegeFilter, setCollegeFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState("");
+  const [stats, setStats] = useState({ alumniCount: 0, seniorCount: 0 });
 
-  const events = [
-    {
-      id: 1,
-      title: 'Alumni Tech Talk: Career in Silicon Valley',
-      date: 'March 20, 2024',
-      time: '6:00 PM PST',
-      type: 'Virtual',
-      speaker: 'Jennifer Wong',
-      attendees: 45,
-    },
-    {
-      id: 2,
-      title: 'Mock Interview Session',
-      date: 'March 25, 2024',
-      time: '4:00 PM PST',
-      type: 'In-Person',
-      speaker: 'Michael Chen',
-      attendees: 12,
-    },
-  ];
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  useEffect(() => {
+    fetchAlumni();
+    fetchStats();
+  }, []);
+
+  const fetchAlumni = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append("search", searchQuery);
+      if (collegeFilter) params.append("college", collegeFilter);
+      if (yearFilter) params.append("graduationYear", yearFilter);
+
+      const res = await axios.get(`${API_URL}/network/alumni?${params.toString()}`);
+      setAlumni(res.data.alumni);
+    } catch (error) {
+      console.error("Fetch alumni error:", error);
+      toast.error("Failed to load alumni");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/network/stats`);
+      setStats(res.data.stats);
+    } catch (error) {
+      console.error("Fetch stats error:", error);
+    }
+  };
+
+  const handleSearch = () => {
+    fetchAlumni();
+  };
+
+  const handleConnect = (alumniId: string, email: string) => {
+    // For now, open email client
+    window.location.href = `mailto:${email}?subject=Connection Request from CollegeConnect`;
+    toast.success("Opening email client...");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold text-gray-900">Alumni Network</h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Connect with successful graduates for mentorship and career opportunities.
-        </p>
-      </div>
+    <div className="space-y-8 min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold text-gray-900">Alumni Network</h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Connect with successful graduates for mentorship and career opportunities.
+          </p>
+        </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap gap-4">
-        <input
-          type="text"
-          placeholder="Search alumni by name, company, or expertise..."
-          className="flex-1 px-4 py-2 border rounded-lg"
-        />
-        <select className="px-4 py-2 border rounded-lg">
-          <option>All Industries</option>
-          <option>Tech</option>
-          <option>Finance</option>
-          <option>Healthcare</option>
-        </select>
-        <select className="px-4 py-2 border rounded-lg">
-          <option>Graduation Year</option>
-          <option>2020-2024</option>
-          <option>2015-2019</option>
-          <option>2010-2014</option>
-        </select>
-      </div>
-
-      {/* Alumni Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {alumni.map((person) => (
-          <div key={person.id} className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center space-x-4">
-              <img
-                src={person.image}
-                alt={person.name}
-                className="w-16 h-16 rounded-full"
-              />
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{person.name}</h3>
-                <p className="text-gray-600">{person.role}</p>
-                <p className="text-gray-600">{person.company}</p>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <p className="text-sm text-gray-500">Class of {person.graduationYear}</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {person.expertise.map((skill) => (
-                  <span
-                    key={skill}
-                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-between items-center">
-              <span className={`text-sm ${
-                person.available ? 'text-green-600' : 'text-gray-500'
-              }`}>
-                {person.available ? '● Available for mentoring' : '○ Currently unavailable'}
-              </span>
-              <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-                Connect
-              </button>
-            </div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white rounded-xl shadow-sm p-6">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-indigo-600">{stats.alumniCount}</div>
+            <div className="text-gray-600 text-sm">Alumni</div>
           </div>
-        ))}
-      </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-green-600">{stats.seniorCount}</div>
+            <div className="text-gray-600 text-sm">Seniors</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-purple-600">{stats.alumniCount + stats.seniorCount}</div>
+            <div className="text-gray-600 text-sm">Total Mentors</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-orange-600">{alumni.length}</div>
+            <div className="text-gray-600 text-sm">Showing</div>
+          </div>
+        </div>
 
-      {/* Upcoming Alumni Events */}
-      <section>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Upcoming Alumni Events</h2>
-        <div className="space-y-4">
-          {events.map((event) => (
-            <div key={event.id} className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">{event.title}</h3>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-center text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      {event.date} at {event.time}
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                      <Users className="h-4 w-4 mr-2" />
-                      {event.attendees} attending
-                    </div>
+        {/* Search and Filters */}
+        <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[200px] relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <input
+              type="text"
+              placeholder="Search alumni by name or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <input
+            type="text"
+            placeholder="College"
+            value={collegeFilter}
+            onChange={(e) => setCollegeFilter(e.target.value)}
+            className="px-4 py-2 border rounded-lg"
+          />
+          <select
+            value={yearFilter}
+            onChange={(e) => setYearFilter(e.target.value)}
+            className="px-4 py-2 border rounded-lg"
+            aria-label="Graduation Year Filter"
+          >
+            <option value="">All Years</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+            <option value="2021">2021</option>
+            <option value="2020">2020</option>
+          </select>
+          <button
+            onClick={handleSearch}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          >
+            Search
+          </button>
+        </div>
+
+        {/* Alumni Grid */}
+        {alumni.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Alumni Found</h3>
+            <p className="text-gray-600">Try adjusting your search filters</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {alumni.map((person) => (
+              <div key={person._id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition">
+                <div className="flex items-center space-x-4">
+                  <img
+                    src={person.avatar || `https://ui-avatars.com/api/?name=${person.name}`}
+                    alt={person.name}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">{person.name}</h3>
+                    <p className="text-gray-600 text-sm">{person.course || "Alumni"}</p>
+                    {person.college && (
+                      <p className="text-gray-500 text-xs">{person.college}</p>
+                    )}
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-sm ${
-                  event.type === 'Virtual'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-green-100 text-green-700'
-                }`}>
-                  {event.type}
-                </span>
+
+                {person.bio && (
+                  <p className="mt-4 text-gray-600 text-sm line-clamp-2">{person.bio}</p>
+                )}
+
+                <div className="mt-4">
+                  {person.yearOfGraduation && (
+                    <p className="text-sm text-gray-500 flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      Class of {person.yearOfGraduation}
+                    </p>
+                  )}
+                  {person.skills && person.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {person.skills.slice(0, 3).map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                      {person.skills.length > 3 && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                          +{person.skills.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Social Links */}
+                <div className="mt-4 flex items-center gap-3">
+                  {person.linkedin && (
+                    <a
+                      href={person.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-700"
+                      title="LinkedIn"
+                    >
+                      <Linkedin className="h-5 w-5" />
+                    </a>
+                  )}
+                  {person.github && (
+                    <a
+                      href={person.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-700 hover:text-gray-900"
+                      title="GitHub"
+                    >
+                      <Github className="h-5 w-5" />
+                    </a>
+                  )}
+                  {person.website && (
+                    <a
+                      href={person.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 hover:text-indigo-700"
+                      title="Website"
+                    >
+                      <ExternalLink className="h-5 w-5" />
+                    </a>
+                  )}
+                </div>
+
+                <div className="mt-6 flex gap-2">
+                  <button
+                    onClick={() => handleConnect(person._id, person.email)}
+                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm"
+                  >
+                    <Mail className="h-4 w-4 inline mr-1" />
+                    Connect
+                  </button>
+                  {/* <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm">
+                    View Profile
+                  </button> */}
+                </div>
               </div>
-              <div className="mt-6 flex justify-end space-x-4">
-                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  Learn More
-                </button>
-                <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-                  Register
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
