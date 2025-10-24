@@ -16,7 +16,7 @@ const teamRequestSchema = new mongoose.Schema(
             required:true,
             trim:true,
         },
-        eventTye:{
+        eventType:{
             type:String,
             default:"hackathon",
             enum:["hackathon","project","competition","other"],

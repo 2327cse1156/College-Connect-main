@@ -12,10 +12,8 @@ export const getAllResources = async (req, res) => {
     if (category && category !== "all") query.category = category;
     if (search) {
       query.$or = [
-        {
-          title: { $regex: search, $options: "i" },
-          description: { $regex: search, $options: "i" },
-        },
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -29,15 +27,11 @@ export const getAllResources = async (req, res) => {
         sort = { downloads: -1, views: -1 };
         break;
       case "liked":
-        sort: {
-          liked: -1;
-        }
+        sort = {liked:-1};
         break;
       case "recent":
       default:
-        sort: {
-          createdAt: -1;
-        }
+      sort= { createdAt: -1 } 
     }
 
     const resources = await Resources.find(query)
@@ -135,7 +129,7 @@ export const uploadResource = async (req, res) => {
         error: "Failed to upload file",
       });
     }
-    const resource = await Resource.create({
+    const resource = await Resources.create({
       title,
       description,
       category,
@@ -176,7 +170,7 @@ export const updateResource = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const resource = await Resource.findById(id);
+    const resource = await Resources.findById(id);
 
     if (!resource) {
       return res.status(404).json({
@@ -185,7 +179,6 @@ export const updateResource = async (req, res) => {
       });
     }
 
-    
     if (resource.uploadedBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -193,7 +186,6 @@ export const updateResource = async (req, res) => {
       });
     }
 
-    
     if (updates.tags) {
       updates.tags = Array.isArray(updates.tags)
         ? updates.tags
@@ -233,7 +225,6 @@ export const deleteResource = async (req, res) => {
       });
     }
 
-    
     if (
       resource.uploadedBy.toString() !== req.user._id.toString() &&
       !req.user.isAdmin
@@ -277,10 +268,8 @@ export const toggleLike = async (req, res) => {
     const likeIndex = resource.likes.indexOf(userId);
 
     if (likeIndex > -1) {
-      
       resource.likes.splice(likeIndex, 1);
     } else {
-    
       resource.likes.push(userId);
     }
 
@@ -301,7 +290,6 @@ export const toggleLike = async (req, res) => {
     });
   }
 };
-
 
 export const trackDownload = async (req, res) => {
   try {
@@ -363,8 +351,10 @@ export const addComment = async (req, res) => {
 
     await resource.save();
 
-    const updatedResource = await Resource.findById(id)
-      .populate("comments.user", "name avatar");
+    const updatedResource = await Resource.findById(id).populate(
+      "comments.user",
+      "name avatar"
+    );
 
     res.status(200).json({
       success: true,
@@ -403,7 +393,6 @@ export const getMyResources = async (req, res) => {
     });
   }
 };
-
 
 export const getResourceStats = async (req, res) => {
   try {
