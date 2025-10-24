@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
-import { Calendar, Users, Search, Filter, Mail, Linkedin, Github, ExternalLink } from "lucide-react";
+import {
+  Calendar,
+  Users,
+  Search,
+  Filter,
+  Mail,
+  Linkedin,
+  Github,
+  ExternalLink,
+  Eye,
+} from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import UserProfileModal from "../components/UserProfileModal";
 
 interface Alumni {
   _id: string;
@@ -28,6 +39,7 @@ const Alumni = () => {
   const [collegeFilter, setCollegeFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
   const [stats, setStats] = useState({ alumniCount: 0, seniorCount: 0 });
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -44,7 +56,9 @@ const Alumni = () => {
       if (collegeFilter) params.append("college", collegeFilter);
       if (yearFilter) params.append("graduationYear", yearFilter);
 
-      const res = await axios.get(`${API_URL}/network/alumni?${params.toString()}`);
+      const res = await axios.get(
+        `${API_URL}/network/alumni?${params.toString()}`
+      );
       setAlumni(res.data.alumni);
     } catch (error) {
       console.error("Fetch alumni error:", error);
@@ -67,10 +81,21 @@ const Alumni = () => {
     fetchAlumni();
   };
 
-  const handleConnect = (alumniId: string, email: string) => {
-    // For now, open email client
-    window.location.href = `mailto:${email}?subject=Connection Request from CollegeConnect`;
-    toast.success("Opening email client...");
+  const handleConnect = (person: Alumni) => {
+    // Priority: LinkedIn > GitHub > Website > Email
+    if (person.linkedin) {
+      window.open(person.linkedin, "_blank");
+      toast.success("Opening LinkedIn profile...");
+    } else if (person.github) {
+      window.open(person.github, "_blank");
+      toast.success("Opening GitHub profile...");
+    } else if (person.website) {
+      window.open(person.website, "_blank");
+      toast.success("Opening website...");
+    } else {
+      window.location.href = `mailto:${person.email}?subject=Connection Request from CollegeConnect`;
+      toast.success("Opening email client...");
+    }
   };
 
   if (loading) {
@@ -88,26 +113,35 @@ const Alumni = () => {
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold text-gray-900">Alumni Network</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Connect with successful graduates for mentorship and career opportunities.
+            Connect with successful graduates for mentorship and career
+            opportunities.
           </p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white rounded-xl shadow-sm p-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-indigo-600">{stats.alumniCount}</div>
+            <div className="text-3xl font-bold text-indigo-600">
+              {stats.alumniCount}
+            </div>
             <div className="text-gray-600 text-sm">Alumni</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">{stats.seniorCount}</div>
+            <div className="text-3xl font-bold text-green-600">
+              {stats.seniorCount}
+            </div>
             <div className="text-gray-600 text-sm">Seniors</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">{stats.alumniCount + stats.seniorCount}</div>
+            <div className="text-3xl font-bold text-purple-600">
+              {stats.alumniCount + stats.seniorCount}
+            </div>
             <div className="text-gray-600 text-sm">Total Mentors</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-orange-600">{alumni.length}</div>
+            <div className="text-3xl font-bold text-orange-600">
+              {alumni.length}
+            </div>
             <div className="text-gray-600 text-sm">Showing</div>
           </div>
         </div>
@@ -157,22 +191,34 @@ const Alumni = () => {
         {alumni.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Alumni Found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No Alumni Found
+            </h3>
             <p className="text-gray-600">Try adjusting your search filters</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {alumni.map((person) => (
-              <div key={person._id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition">
+              <div
+                key={person._id}
+                className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition"
+              >
                 <div className="flex items-center space-x-4">
                   <img
-                    src={person.avatar || `https://ui-avatars.com/api/?name=${person.name}`}
+                    src={
+                      person.avatar ||
+                      `https://ui-avatars.com/api/?name=${person.name}`
+                    }
                     alt={person.name}
                     className="w-16 h-16 rounded-full object-cover"
                   />
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900">{person.name}</h3>
-                    <p className="text-gray-600 text-sm">{person.course || "Alumni"}</p>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {person.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      {person.course || "Alumni"}
+                    </p>
                     {person.college && (
                       <p className="text-gray-500 text-xs">{person.college}</p>
                     )}
@@ -180,7 +226,9 @@ const Alumni = () => {
                 </div>
 
                 {person.bio && (
-                  <p className="mt-4 text-gray-600 text-sm line-clamp-2">{person.bio}</p>
+                  <p className="mt-4 text-gray-600 text-sm line-clamp-2">
+                    {person.bio}
+                  </p>
                 )}
 
                 <div className="mt-4">
@@ -248,21 +296,50 @@ const Alumni = () => {
 
                 <div className="mt-6 flex gap-2">
                   <button
-                    onClick={() => handleConnect(person._id, person.email)}
-                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm"
+                    onClick={() => setSelectedUserId(person._id)}
+                    className="flex-1 px-4 py-2 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition text-sm flex items-center justify-center"
                   >
-                    <Mail className="h-4 w-4 inline mr-1" />
-                    Connect
-                  </button>
-                  {/* <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm">
+                    <Eye className="h-4 w-4 mr-1" />
                     View Profile
-                  </button> */}
+                  </button>
+                  <button
+                    onClick={() => handleConnect(person)}
+                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm flex items-center justify-center"
+                  >
+                    {person.linkedin ? (
+                      <>
+                        <Linkedin className="h-4 w-4 mr-1" />
+                        LinkedIn
+                      </>
+                    ) : person.github ? (
+                      <>
+                        <Github className="h-4 w-4 mr-1" />
+                        GitHub
+                      </>
+                    ) : person.website ? (
+                      <>
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Website
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4 mr-1" />
+                        Email
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+      {selectedUserId && (
+        <UserProfileModal
+          userId={selectedUserId}
+          onClose={() => setSelectedUserId(null)}
+        />
+      )}
     </div>
   );
 };

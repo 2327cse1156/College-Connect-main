@@ -1,38 +1,43 @@
 import TeamRequest from "../models/TeamRequest.js";
 import User from "../models/User.js";
 
+// ✅ Get all team requests with filters
 export const getAllTeamRequests = async (req, res) => {
   try {
     const { search, event, status, skills } = req.query;
+
     let query = {};
+
+    // Search by title or event
     if (search) {
       query.$or = [
-        {
-          title: { $regex: search, $options: "i" },
-        },
-        {
-          event: { $regex: search, $options: "i" },
-        },
+        { title: { $regex: search, $options: "i" } },
+        { event: { $regex: search, $options: "i" } },
       ];
     }
+
+    // Filter by event
     if (event) {
       query.event = { $regex: event, $options: "i" };
     }
 
+    // Filter by status
     if (status) {
       query.status = status;
     }
 
+    // Filter by skills needed
     if (skills) {
       const skillsArray = skills.split(",").map((s) => s.trim());
       query.skillsNeeded = { $in: skillsArray };
     }
 
-    const teamRequests = (await TeamRequest.find(query))
+    const teamRequests = await TeamRequest.find(query)
       .populate("createdBy", "name email avatar")
       .populate("teamMembers", "name email avatar")
       .sort({ createdAt: -1 })
       .limit(100);
+
     res.status(200).json({
       success: true,
       count: teamRequests.length,
@@ -48,9 +53,11 @@ export const getAllTeamRequests = async (req, res) => {
   }
 };
 
+// ✅ Get single team request by ID
 export const getTeamRequestById = async (req, res) => {
   try {
     const { id } = req.params;
+
     const teamRequest = await TeamRequest.findById(id)
       .populate("createdBy", "name email avatar skills bio")
       .populate("teamMembers", "name email avatar skills")
@@ -58,7 +65,7 @@ export const getTeamRequestById = async (req, res) => {
 
     if (!teamRequest) {
       return res.status(404).json({
-        succcess: false,
+        success: false,
         error: "Team request not found",
       });
     }
@@ -77,6 +84,7 @@ export const getTeamRequestById = async (req, res) => {
   }
 };
 
+// ✅ Create team request
 export const createTeamRequest = async (req, res) => {
   try {
     const {
@@ -90,9 +98,10 @@ export const createTeamRequest = async (req, res) => {
       tags,
       hackathonId,
     } = req.body;
+
     if (!title || !description || !event || !skillsNeeded || !spotsAvailable) {
       return res.status(400).json({
-        succcess: false,
+        success: false,
         error: "Missing required fields",
       });
     }
@@ -112,9 +121,8 @@ export const createTeamRequest = async (req, res) => {
       hackathonId: hackathonId || null,
     });
 
-    const populatedRequest = await TeamRequest.findById(
-      teamRequest._id
-    ).populate("createdBy", "name email avatar");
+    const populatedRequest = await TeamRequest.findById(teamRequest._id)
+      .populate("createdBy", "name email avatar");
 
     res.status(201).json({
       success: true,
@@ -131,6 +139,7 @@ export const createTeamRequest = async (req, res) => {
   }
 };
 
+// ✅ Update team request (only by creator)
 export const updateTeamRequest = async (req, res) => {
   try {
     const { id } = req.params;
@@ -145,7 +154,7 @@ export const updateTeamRequest = async (req, res) => {
       });
     }
 
-
+    // Check if user is the creator
     if (teamRequest.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -153,7 +162,7 @@ export const updateTeamRequest = async (req, res) => {
       });
     }
 
-    
+    // Update allowed fields
     if (updates.skillsNeeded) {
       updates.skillsNeeded = Array.isArray(updates.skillsNeeded)
         ? updates.skillsNeeded
@@ -186,6 +195,7 @@ export const updateTeamRequest = async (req, res) => {
   }
 };
 
+// ✅ Delete team request (only by creator)
 export const deleteTeamRequest = async (req, res) => {
   try {
     const { id } = req.params;
@@ -199,7 +209,7 @@ export const deleteTeamRequest = async (req, res) => {
       });
     }
 
-    
+    // Check if user is the creator
     if (teamRequest.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -223,7 +233,7 @@ export const deleteTeamRequest = async (req, res) => {
   }
 };
 
-
+// ✅ Apply to join team
 export const applyToTeam = async (req, res) => {
   try {
     const { id } = req.params;
@@ -246,7 +256,7 @@ export const applyToTeam = async (req, res) => {
       });
     }
 
-
+    // Check if user is the creator
     if (teamRequest.createdBy.toString() === userId.toString()) {
       return res.status(400).json({
         success: false,
@@ -254,7 +264,7 @@ export const applyToTeam = async (req, res) => {
       });
     }
 
-    
+    // Check if already applied
     const existingApplication = teamRequest.applications.find(
       (app) => app.user.toString() === userId.toString()
     );
@@ -266,7 +276,7 @@ export const applyToTeam = async (req, res) => {
       });
     }
 
-    
+    // Check if already a team member
     if (teamRequest.teamMembers.includes(userId)) {
       return res.status(400).json({
         success: false,
@@ -274,7 +284,7 @@ export const applyToTeam = async (req, res) => {
       });
     }
 
-    
+    // Add application
     teamRequest.applications.push({
       user: userId,
       message: message || "",
@@ -299,7 +309,7 @@ export const applyToTeam = async (req, res) => {
   }
 };
 
-
+// ✅ Accept/Reject application (only by creator)
 export const handleApplication = async (req, res) => {
   try {
     const { id, applicationId } = req.params;
@@ -321,6 +331,7 @@ export const handleApplication = async (req, res) => {
       });
     }
 
+    // Check if user is the creator
     if (teamRequest.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -338,16 +349,16 @@ export const handleApplication = async (req, res) => {
     }
 
     if (action === "accept") {
-      
+      // Add to team members
       teamRequest.teamMembers.push(application.user);
       application.status = "accepted";
 
-    
+      // Decrease spots available
       if (teamRequest.spotsAvailable > 0) {
         teamRequest.spotsAvailable -= 1;
       }
 
-      
+      // Close request if no spots left
       if (teamRequest.spotsAvailable === 0) {
         teamRequest.status = "closed";
       }
@@ -372,7 +383,7 @@ export const handleApplication = async (req, res) => {
   }
 };
 
-
+// ✅ Get my team requests (created by me)
 export const getMyTeamRequests = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -397,7 +408,7 @@ export const getMyTeamRequests = async (req, res) => {
   }
 };
 
-
+// ✅ Get my applications (teams I applied to)
 export const getMyApplications = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -409,7 +420,7 @@ export const getMyApplications = async (req, res) => {
       .populate("teamMembers", "name email avatar")
       .sort({ createdAt: -1 });
 
-    
+    // Filter to show only my applications
     const myApplications = requests.map((req) => {
       const myApp = req.applications.find(
         (app) => app.user.toString() === userId.toString()

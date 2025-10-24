@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Search, MessageCircle, Code2, Users, Mail, Linkedin, Github, ExternalLink } from "lucide-react";
+import { Search, MessageCircle, Code2, Users, Mail, Linkedin, Github, ExternalLink, Eye } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import UserProfileModal from "../components/UserProfileModal";
 
 interface Senior {
   _id: string;
@@ -26,6 +27,7 @@ const Seniors = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
   const [skillFilter, setSkillFilter] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -55,9 +57,21 @@ const Seniors = () => {
     fetchSeniors();
   };
 
-  const handleConnect = (email: string) => {
-    window.location.href = `mailto:${email}?subject=Connection Request from CollegeConnect`;
-    toast.success("Opening email client...");
+  const handleConnect = (senior: Senior) => {
+    // Priority: LinkedIn > GitHub > Website > Email
+    if (senior.linkedin) {
+      window.open(senior.linkedin, "_blank");
+      toast.success("Opening LinkedIn profile...");
+    } else if (senior.github) {
+      window.open(senior.github, "_blank");
+      toast.success("Opening GitHub profile...");
+    } else if (senior.website) {
+      window.open(senior.website, "_blank");
+      toast.success("Opening website...");
+    } else {
+      window.location.href = `mailto:${senior.email}?subject=Connection Request from CollegeConnect`;
+      toast.success("Opening email client...");
+    }
   };
 
   if (loading) {
@@ -225,11 +239,30 @@ const Seniors = () => {
 
                 <div className="mt-6">
                   <button
-                    onClick={() => handleConnect(senior.email)}
+                    onClick={() => handleConnect(senior)}
                     className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center"
                   >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Connect
+                    {senior.linkedin ? (
+                      <>
+                        <Linkedin className="h-4 w-4 mr-2" />
+                        Connect on LinkedIn
+                      </>
+                    ) : senior.github ? (
+                      <>
+                        <Github className="h-4 w-4 mr-2" />
+                        View GitHub
+                      </>
+                    ) : senior.website ? (
+                      <>
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Visit Website
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Send Email
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

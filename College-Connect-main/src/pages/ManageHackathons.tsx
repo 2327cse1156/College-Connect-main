@@ -222,12 +222,14 @@ function ManageHackathons() {
                     <button
                       onClick={() => handleEdit(h)}
                       className="text-indigo-600 hover:text-indigo-800"
+                      title="Edit Hackathon"
                     >
                       <Edit className="w-5 h-5" />
                     </button>
                     <button
                       onClick={() => handleDelete(h._id)}
                       className="text-red-600 hover:text-red-800"
+                      title="Delete Hackathon"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -266,10 +268,11 @@ function ManageHackathons() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="title" className="block text-sm font-medium mb-1">
                     Title *
                   </label>
                   <input
+                    id="title"
                     type="text"
                     value={form.title}
                     onChange={(e) =>
@@ -281,10 +284,11 @@ function ManageHackathons() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="description" className="block text-sm font-medium mb-1">
                     Description *
                   </label>
                   <textarea
+                    id="description"
                     title="Description"
                     placeholder="Enter hackathon description"
                     value={form.description}
@@ -298,10 +302,11 @@ function ManageHackathons() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="startDate" className="block text-sm font-medium mb-1">
                     Start Date *
                   </label>
                   <input
+                    id="startDate"
                     type="date"
                     value={form.startDate}
                     onChange={(e) =>
@@ -313,10 +318,11 @@ function ManageHackathons() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="endDate" className="block text-sm font-medium mb-1">
                     End Date *
                   </label>
                   <input
+                    id="endDate"
                     type="date"
                     value={form.endDate}
                     onChange={(e) =>
@@ -328,10 +334,11 @@ function ManageHackathons() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="location" className="block text-sm font-medium mb-1">
                     Location *
                   </label>
                   <input
+                    id="location"
                     type="text"
                     value={form.location}
                     onChange={(e) =>
@@ -345,10 +352,11 @@ function ManageHackathons() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="type" className="block text-sm font-medium mb-1">
                     Type *
                   </label>
                   <select
+                    id="type"
                     title="Type"
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
@@ -361,10 +369,11 @@ function ManageHackathons() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="prizes" className="block text-sm font-medium mb-1">
                     Prizes
                   </label>
                   <input
+                    id="prizes"
                     type="text"
                     value={form.prizes}
                     onChange={(e) =>
@@ -376,10 +385,11 @@ function ManageHackathons() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="expectedParticipants" className="block text-sm font-medium mb-1">
                     Expected Participants
                   </label>
                   <input
+                    id="expectedParticipants"
                     type="text"
                     value={form.expectedParticipants}
                     onChange={(e) =>
@@ -391,10 +401,11 @@ function ManageHackathons() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="image" className="block text-sm font-medium mb-1">
                     Image
                   </label>
                   <input
+                    id="image"
                     type="file"
                     accept="image/*"
                     onChange={(e) => setImageFile(e.target.files?.[0] || null)}
@@ -405,10 +416,11 @@ function ManageHackathons() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="tags" className="block text-sm font-medium mb-1">
                     Tags (comma-separated)
                   </label>
                   <input
+                    id="tags"
                     type="text"
                     value={form.tags}
                     onChange={(e) => setForm({ ...form, tags: e.target.value })}
@@ -418,10 +430,11 @@ function ManageHackathons() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="websiteUrl" className="block text-sm font-medium mb-1">
                     Website URL
                   </label>
                   <input
+                    id="websiteUrl"
                     type="url"
                     value={form.websiteUrl}
                     onChange={(e) =>
