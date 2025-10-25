@@ -7,7 +7,10 @@ import toast from "react-hot-toast";
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false); // ✅ Track email sent state
+  const [emailSent, setEmailSent] = useState(false);
+
+  
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,12 +21,10 @@ const ForgotPassword = () => {
 
     try {
       setLoading(true);
-      await axios.post("http://localhost:3000/api/auth/forgot-password", {
-        email,
-      });
-
+      
+      await axios.post(`${API_URL}/auth/forgot-password`, { email });
       toast.success("Reset link sent! Check your email.");
-      setEmailSent(true); // ✅ Show success state
+      setEmailSent(true);
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to send reset email");
       console.error("Forgot password error:", err);
@@ -32,7 +33,6 @@ const ForgotPassword = () => {
     }
   };
 
-  // ✅ Success State - Show confirmation message
   if (emailSent) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-50">
@@ -89,7 +89,6 @@ const ForgotPassword = () => {
     );
   }
 
-  // ✅ Form State - Show email input
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8 sm:p-10">

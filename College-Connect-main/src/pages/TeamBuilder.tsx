@@ -749,6 +749,10 @@ const TeamBuilder = () => {
           onViewProfile={setSelectedUserId}
         />
       )}
+      {selectedUserId && (
+        <UserProfileModal userId={selectedUserId}
+        onClose={()=> setSelectedUserId(null)}/>
+      )}
     </div>
   );
 };

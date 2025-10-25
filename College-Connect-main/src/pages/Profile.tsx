@@ -93,7 +93,7 @@ const Profile = () => {
   if ((key === "avatarFile" || key === "resumeFile") && value instanceof File) {
     formData.append(key === "avatarFile" ? "avatar" : "resume", value);
   } else if (key === "skills" || key === "activities") {
-    formData.append(key, JSON.stringify(value)); // <-- send as JSON string
+    formData.append(key, JSON.stringify(value)); 
   } else if (typeof value === "string") {
     formData.append(key, value);
   }

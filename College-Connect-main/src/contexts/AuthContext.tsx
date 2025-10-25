@@ -26,6 +26,7 @@ interface User {
   verificationStatus?: "pending" | "approved" | "rejected";
   studentIdUrl?: string;
   rejectionReason?: string;
+  isAdmin?:boolean;
 }
 
 interface AuthContextType {
