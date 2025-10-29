@@ -18,7 +18,8 @@ import {
   Video,
   Archive,
 } from "lucide-react";
-import axios from "axios";
+import api from "../services/api";
+import { useDebounce } from "../hooks/useDebounce";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import UserProfileModal from "../components/UserProfileModal";
@@ -67,7 +68,6 @@ const Resources = () => {
   const [stats, setStats] = useState({ totalResources: 0, totalDownloads: 0 });
 
   const { currentUser } = useAuth();
-  const API_URL = import.meta.env.VITE_API_URL;
 
   const isAdmin = currentUser?.isAdmin || currentUser?.role === "admin";
 
@@ -94,7 +94,7 @@ const Resources = () => {
       if (categoryFilter !== "all") params.append("category", categoryFilter);
       if (sortBy) params.append("sortBy", sortBy);
 
-      const res = await axios.get(`${API_URL}/resources?${params.toString()}`);
+      const res = await api.get(`/resources?${params.toString()}`);
       setResources(res.data.resources);
     } catch (error) {
       console.error("Fetch resources error:", error);
@@ -106,7 +106,7 @@ const Resources = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get(`${API_URL}/resources/stats`);
+      const res = await api.get(`/resources/stats`);
       setStats(res.data.stats);
     } catch (error) {
       console.error("Fetch stats error:", error);
@@ -124,8 +124,8 @@ const Resources = () => {
     }
 
     try {
-      await axios.post(
-        `${API_URL}/resources/${resourceId}/like`,
+      await api.post(
+        `/resources/${resourceId}/like`,
         {},
         { withCredentials: true }
       );
@@ -138,8 +138,8 @@ const Resources = () => {
   const handleDownload = async (resource: Resource) => {
     try {
       // Track download
-      await axios.post(
-        `${API_URL}/resources/${resource._id}/download`,
+      await api.post(
+        `/resources/${resource._id}/download`,
         {},
         { withCredentials: true }
       );
@@ -158,7 +158,7 @@ const Resources = () => {
     if (!confirm("Are you sure you want to delete this resource?")) return;
 
     try {
-      await axios.delete(`${API_URL}/resources/${resourceId}`, {
+      await api.delete(`/resources/${resourceId}`, {
         withCredentials: true,
       });
       toast.success("Resource deleted successfully");
@@ -214,28 +214,39 @@ const Resources = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-gray-900">Learning Resources</h1>
+          <h1 className="text-4xl font-bold text-gray-900">
+            Learning Resources
+          </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Access and share valuable learning materials with your college community.
+            Access and share valuable learning materials with your college
+            community.
           </p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white rounded-xl shadow-sm p-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-indigo-600">{stats.totalResources}</div>
+            <div className="text-3xl font-bold text-indigo-600">
+              {stats.totalResources}
+            </div>
             <div className="text-gray-600 text-sm">Resources</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">{stats.totalDownloads}</div>
+            <div className="text-3xl font-bold text-green-600">
+              {stats.totalDownloads}
+            </div>
             <div className="text-gray-600 text-sm">Downloads</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">{categories.length}</div>
+            <div className="text-3xl font-bold text-purple-600">
+              {categories.length}
+            </div>
             <div className="text-gray-600 text-sm">Categories</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-orange-600">{resources.length}</div>
+            <div className="text-3xl font-bold text-orange-600">
+              {resources.length}
+            </div>
             <div className="text-gray-600 text-sm">Showing</div>
           </div>
         </div>
@@ -298,7 +309,9 @@ const Resources = () => {
           {showFilters && (
             <div className="bg-white rounded-lg shadow-sm p-4 border-2 border-indigo-100">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">Filter by Category</h3>
+                <h3 className="font-semibold text-gray-900">
+                  Filter by Category
+                </h3>
                 <button
                   onClick={() => setCategoryFilter("all")}
                   className="text-sm text-indigo-600 hover:text-indigo-700"
@@ -339,7 +352,9 @@ const Resources = () => {
         {resources.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Resources Found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No Resources Found
+            </h3>
             <p className="text-gray-600">Try adjusting your search filters</p>
           </div>
         ) : (
@@ -429,7 +444,9 @@ const Resources = () => {
                       title="Like"
                     >
                       <Heart
-                        className={`h-4 w-4 mr-1 ${isLiked(resource) ? "fill-current" : ""}`}
+                        className={`h-4 w-4 mr-1 ${
+                          isLiked(resource) ? "fill-current" : ""
+                        }`}
                       />
                       {resource.likes.length}
                     </button>
@@ -502,8 +519,6 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
   });
   const [file, setFile] = useState<File | null>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL;
-
   const categories = [
     "Notes",
     "Books",
@@ -536,7 +551,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
       formData.append("tags", form.tags);
       formData.append("file", file);
 
-      await axios.post(`${API_URL}/resources`, formData, {
+      await api.post(`/resources`, formData, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -554,7 +569,9 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
       <div className="bg-white rounded-xl max-w-2xl w-full my-8">
         <div className="flex items-center justify-between p-6 border-b">
-          <h3 className="text-xl font-semibold text-gray-900">Upload Resource</h3>
+          <h3 className="text-xl font-semibold text-gray-900">
+            Upload Resource
+          </h3>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -570,6 +587,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
               Title *
             </label>
             <input
+              title="form"
               type="text"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -583,8 +601,12 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
               Description *
             </label>
             <textarea
+              title="Description"
+              placeholder="Enter a brief description of the resource"
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
               rows={3}
               className="w-full border rounded-lg px-3 py-2"
               required
@@ -593,10 +615,14 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="upload-category"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Category *
               </label>
               <select
+                id="upload-category"
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
                 className="w-full border rounded-lg px-3 py-2"
@@ -624,11 +650,17 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="resource-file"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               File * (Max 50MB)
             </label>
             <input
-            title="file"
+              id="resource-file"
+              title="Select a file"
+              placeholder="Select a file"
+              aria-label="File upload (Max 50MB)"
               type="file"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
               className="w-full border rounded-lg px-3 py-2"
@@ -636,7 +668,8 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
             />
             {file && (
               <p className="text-sm text-gray-600 mt-1">
-                Selected: {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
+                Selected: {file.name} ({(file.size / (1024 * 1024)).toFixed(2)}{" "}
+                MB)
               </p>
             )}
           </div>
