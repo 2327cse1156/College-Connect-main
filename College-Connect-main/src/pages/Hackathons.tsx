@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import axios from "axios";
+import api from "../services/api";
+import { useDebounce } from "../hooks/useDebounce";
 import toast from "react-hot-toast";
 import { Calendar, CheckCircle, ExternalLink, Filter, MapPin, Search, Users } from "lucide-react";
 interface Hackathon {
@@ -27,19 +28,20 @@ function Hackathons() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const { currentUser } = useAuth();
-  const API_URL = import.meta.env.VITE_API_URL;
+
+  const debouncedSearch = useDebounce(searchQuery, 500);
 
   useEffect(() => {
     fetchHackathons();
   }, []);
   useEffect(() => {
     filterHackathons();
-  }, [searchQuery, typeFilter, statusFilter, hackathons]);
+  }, [debouncedSearch, typeFilter, statusFilter, hackathons]);
 
   const fetchHackathons = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/hackathons`);
+      const res = await api.get("/hackathons");
       setHackathons(res.data.hackathons);
     } catch (error) {
       console.error("Fetch error:", error);
@@ -76,8 +78,8 @@ function Hackathons() {
     }
 
     try {
-      await axios.post(
-        `${API_URL}/hackathons/${hackathonId}/register`,
+      await api.post(
+        `/hackathons/${hackathonId}/register`,
         {},
         { withCredentials: true }
       );
@@ -90,8 +92,8 @@ function Hackathons() {
 
   const handleUnregister = async (hackathonId: string) => {
     try {
-      await axios.post(
-        `${API_URL}/hackathons/${hackathonId}/unregister`,
+      await api.post(
+        `/hackathons/${hackathonId}/unregister`,
         {},
         { withCredentials: true }
       );
