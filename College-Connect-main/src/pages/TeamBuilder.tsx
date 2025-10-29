@@ -16,7 +16,7 @@ import {
   Bookmark,
   BookmarkCheck,
 } from "lucide-react";
-import axios from "axios";
+import api from "../services/api";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import UserProfileModal from "../components/UserProfileModal";
@@ -69,7 +69,7 @@ const TeamBuilder = () => {
   const [selectedRequest, setSelectedRequest] = useState<TeamRequest | null>(
     null
   );
-  const [bookmarkedIds,setBookmarkedIds] = useState<string[]>([]);
+  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
   const [formLoading, setFormLoading] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null); // ✅ For profile modal
 
@@ -85,7 +85,6 @@ const TeamBuilder = () => {
   );
 
   const { currentUser } = useAuth();
-  const API_URL = import.meta.env.VITE_API_URL;
 
   const [createForm, setCreateForm] = useState({
     title: "",
@@ -164,9 +163,7 @@ const TeamBuilder = () => {
       if (filters.status !== "all") params.append("status", filters.status);
       if (filters.skills) params.append("skills", filters.skills);
 
-      const res = await axios.get(
-        `${API_URL}/team-builder?${params.toString()}`
-      );
+      const res = await api.get(`/team-builder?${params.toString()}`);
       let requests = res.data.teamRequests;
 
       //  Client-side sorting
@@ -228,7 +225,7 @@ const TeamBuilder = () => {
     if (!currentUser) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/team-builder/my/requests`, {
+      const res = await api.get(`/team-builder/my/requests`, {
         withCredentials: true,
       });
       setMyRequests(res.data.teamRequests);
@@ -244,7 +241,7 @@ const TeamBuilder = () => {
     if (!currentUser) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/team-builder/my/applications`, {
+      const res = await api.get(`/team-builder/my/applications`, {
         withCredentials: true,
       });
       setMyApplications(res.data.applications);
@@ -270,8 +267,8 @@ const TeamBuilder = () => {
 
     setFormLoading(true);
     try {
-      await axios.post(
-        `${API_URL}/team-builder`,
+      await api.post(
+        `/team-builder`,
         {
           ...createForm,
           skillsNeeded: createForm.skillsNeeded.split(",").map((s) => s.trim()),
@@ -309,8 +306,8 @@ const TeamBuilder = () => {
 
     setFormLoading(true);
     try {
-      await axios.put(
-        `${API_URL}/team-builder/${selectedRequest._id}`,
+      await api.put(
+        `/team-builder/${selectedRequest._id}`,
         {
           ...createForm,
           skillsNeeded: createForm.skillsNeeded.split(",").map((s) => s.trim()),
@@ -336,7 +333,7 @@ const TeamBuilder = () => {
     if (!confirm("Are you sure you want to delete this request?")) return;
 
     try {
-      await axios.delete(`${API_URL}/team-builder/${requestId}`, {
+      await api.delete(`/team-builder/${requestId}`, {
         withCredentials: true,
       });
       toast.success("Team request deleted successfully!");
@@ -355,8 +352,8 @@ const TeamBuilder = () => {
     const message = prompt("Enter a message for the team creator (optional):");
 
     try {
-      await axios.post(
-        `${API_URL}/team-builder/${requestId}/apply`,
+      await api.post(
+        `/team-builder/${requestId}/apply`,
         { message: message || "" },
         { withCredentials: true }
       );
@@ -373,15 +370,15 @@ const TeamBuilder = () => {
     action: "accept" | "reject"
   ) => {
     try {
-      await axios.post(
-        `${API_URL}/team-builder/${requestId}/applications/${applicationId}`,
+      await api.post(
+        `/team-builder/${requestId}/applications/${applicationId}`,
         { action },
         { withCredentials: true }
       );
       toast.success(`Application ${action}ed successfully!`);
       fetchMyRequests();
       if (selectedRequest) {
-        const updated = await axios.get(`${API_URL}/team-builder/${requestId}`);
+        const updated = await api.get(`/team-builder/${requestId}`);
         setSelectedRequest(updated.data.teamRequest);
       }
     } catch (error: any) {
@@ -581,7 +578,7 @@ const TeamBuilder = () => {
                       Event Type
                     </label>
                     <select
-                    title="filters evevnt type"
+                      title="filters evevnt type"
                       value={filters.eventType}
                       onChange={(e) =>
                         setFilters({ ...filters, eventType: e.target.value })
@@ -602,7 +599,7 @@ const TeamBuilder = () => {
                       Status
                     </label>
                     <select
-                    title="filters"
+                      title="filters"
                       value={filters.status}
                       onChange={(e) =>
                         setFilters({ ...filters, status: e.target.value })
@@ -750,8 +747,10 @@ const TeamBuilder = () => {
         />
       )}
       {selectedUserId && (
-        <UserProfileModal userId={selectedUserId}
-        onClose={()=> setSelectedUserId(null)}/>
+        <UserProfileModal
+          userId={selectedUserId}
+          onClose={() => setSelectedUserId(null)}
+        />
       )}
     </div>
   );
@@ -770,11 +769,11 @@ interface TeamRequestsListProps {
   isBookmarked?: (requestId: string) => boolean;
 }
 
-const TeamRequestsList: React.FC<TeamRequestsListProps> = ({ 
-  requests, 
-  currentUser, 
-  onApply, 
-  hasUserApplied, 
+const TeamRequestsList: React.FC<TeamRequestsListProps> = ({
+  requests,
+  currentUser,
+  onApply,
+  hasUserApplied,
   isUserMember,
   onViewProfile,
   onBookmark,
@@ -784,7 +783,9 @@ const TeamRequestsList: React.FC<TeamRequestsListProps> = ({
     return (
       <div className="bg-white rounded-lg shadow p-12 text-center">
         <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Team Requests Found</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          No Team Requests Found
+        </h3>
         <p className="text-gray-600">Check back later for new opportunities!</p>
       </div>
     );
@@ -810,7 +811,9 @@ const TeamRequestsList: React.FC<TeamRequestsListProps> = ({
                 title="View profile"
               />
               <div className="flex-1">
-                <h3 className="text-xl font-semibold text-gray-900">{request.title}</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {request.title}
+                </h3>
                 <p className="text-gray-600 text-sm">
                   Posted by {request.createdBy.name} ·{" "}
                   {new Date(request.createdAt).toLocaleDateString()}
@@ -825,7 +828,8 @@ const TeamRequestsList: React.FC<TeamRequestsListProps> = ({
                     : "bg-red-100 text-red-700"
                 }`}
               >
-                {request.spotsAvailable} {request.spotsAvailable === 1 ? "spot" : "spots"} left
+                {request.spotsAvailable}{" "}
+                {request.spotsAvailable === 1 ? "spot" : "spots"} left
               </span>
               {isUserMember(request) && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium flex items-center">
@@ -845,7 +849,9 @@ const TeamRequestsList: React.FC<TeamRequestsListProps> = ({
                       ? "bg-yellow-100 text-yellow-600 hover:bg-yellow-200"
                       : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                   }`}
-                  title={isBookmarked(request._id) ? "Remove bookmark" : "Bookmark"}
+                  title={
+                    isBookmarked(request._id) ? "Remove bookmark" : "Bookmark"
+                  }
                 >
                   {isBookmarked(request._id) ? (
                     <BookmarkCheck className="h-5 w-5" />
@@ -867,7 +873,9 @@ const TeamRequestsList: React.FC<TeamRequestsListProps> = ({
             <p className="text-gray-600 mb-4">{request.description}</p>
 
             <div className="flex flex-wrap gap-2 mb-4">
-              <span className="text-sm font-medium text-gray-700">Skills needed:</span>
+              <span className="text-sm font-medium text-gray-700">
+                Skills needed:
+              </span>
               {request.skillsNeeded.map((skill, idx) => (
                 <span
                   key={idx}
@@ -881,7 +889,10 @@ const TeamRequestsList: React.FC<TeamRequestsListProps> = ({
             {request.tags && request.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {request.tags.map((tag, idx) => (
-                  <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                  <span
+                    key={idx}
+                    className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs"
+                  >
                     #{tag}
                   </span>
                 ))}

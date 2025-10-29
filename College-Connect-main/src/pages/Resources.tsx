@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import api from "../services/api";
 import { useDebounce } from "../hooks/useDebounce";
+import { RESOURCE_CATEGORIES } from "../constants";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import UserProfileModal from "../components/UserProfileModal";
@@ -71,15 +72,7 @@ const Resources = () => {
 
   const isAdmin = currentUser?.isAdmin || currentUser?.role === "admin";
 
-  const categories = [
-    "Notes",
-    "Books",
-    "Projects",
-    "Tutorials",
-    "Interview Prep",
-    "Research Papers",
-    "Other",
-  ];
+  const debouncedSearch = useDebounce(searchQuery, 500);
 
   useEffect(() => {
     fetchResources();
@@ -239,7 +232,7 @@ const Resources = () => {
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-purple-600">
-              {categories.length}
+              {RESOURCE_CATEGORIES.length}
             </div>
             <div className="text-gray-600 text-sm">Categories</div>
           </div>
@@ -330,7 +323,7 @@ const Resources = () => {
                 >
                   All
                 </button>
-                {categories.map((cat) => (
+                {RESOURCE_CATEGORIES.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setCategoryFilter(cat)}

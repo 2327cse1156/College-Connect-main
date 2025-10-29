@@ -33,7 +33,7 @@ function Hackathons() {
 
   useEffect(() => {
     fetchHackathons();
-  }, []);
+  }, [debouncedSearch, typeFilter, statusFilter]);
   useEffect(() => {
     filterHackathons();
   }, [debouncedSearch, typeFilter, statusFilter, hackathons]);
