@@ -32,7 +32,8 @@ const sendTokenCookie = (res, user) => {
 // ---------------- SIGNUP (WITH STUDENT ID VERIFICATION) ----------------
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, admissionYear, graduationYear } =
+      req.body;
 
     if (!name || !email || !password)
       return res.status(400).json({ error: "All fields are required" });
@@ -52,6 +53,25 @@ export const signup = async (req, res) => {
         return res
           .status(400)
           .json({ error: "Kindly use a valid college email" });
+
+      if (!admissionYear || !graduationYear) {
+        return res.status(400).json({
+          error: "Admission year and graduation year are required for students",
+        });
+      }
+
+      const admission = parseInt(admissionYear);
+      const graduation = parseInt(graduationYear);
+
+      if (isNaN(admission) || isNaN(graduation)) {
+        return res.status(400).json({ error: "Invalid year format" });
+      }
+
+      if (graduation <= admission) {
+        return res.status(400).json({
+          error: "Graduation year must be after admission year",
+        });
+      }
 
       // ✅ Student ID is required
       if (!req.file) {
@@ -92,8 +112,13 @@ export const signup = async (req, res) => {
       verificationStatus: role === "student" ? "pending" : "approved",
       studentIdUrl: studentIdUrl,
       isAdmin: false,
+      admissionYear: admissionYear ? parseInt(admissionYear) : undefined,
+      graduationYear: graduationYear ? parseInt(graduationYear) : undefined,
+      currentYear: 1,
     });
-
+    if (role === "student" && admissionYear && graduationYear) {
+      await user.updateRoleIfNeeded();
+    }
     // ✅ Send welcome email for students
     if (role === "student") {
       try {
@@ -131,6 +156,9 @@ export const signup = async (req, res) => {
         email: user.email,
         role: user.role,
         verificationStatus: user.verificationStatus,
+        admissionYear: user.admissionYear,
+        graduationYear: user.graduationYear,
+        currentYear: user.currentYear,
       },
       success: true,
       message:
@@ -178,6 +206,15 @@ export const login = async (req, res) => {
       });
     }
 
+    if (user.verificationStatus === "approved") {
+      const roleUpdate = await user.updateRoleIfNeeded();
+      if (roleUpdate && roleUpdate.updated) {
+        console.log(
+          `Role auto-updated for ${user.email}: ${roleUpdate.oldRole} →${roleUpdate.newRole}`
+        );
+      }
+    }
+
     sendTokenCookie(res, user);
 
     res.status(200).json({
@@ -188,6 +225,9 @@ export const login = async (req, res) => {
         role: user.role,
         verificationStatus: user.verificationStatus,
         isAdmin: user.isAdmin,
+        admissionYear: user.admissionYear,
+        graduationYear: user.graduationYear,
+        currentYear: user.currentYear,
       },
       success: true,
       message: "Logged in successfully",
@@ -270,7 +310,7 @@ export const resetPassword = async (req, res) => {
 
 export const validateResetToken = async (req, res) => {
   const { token } = req.body;
-  
+
   if (!token) {
     return res.status(400).json({ error: "Token is required" });
   }
@@ -278,14 +318,14 @@ export const validateResetToken = async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_RESET_SECRET);
     const user = await User.findById(decoded.id);
-    
+
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Token is valid" 
+    res.status(200).json({
+      success: true,
+      message: "Token is valid",
     });
   } catch (err) {
     if (err.name === "TokenExpiredError") {

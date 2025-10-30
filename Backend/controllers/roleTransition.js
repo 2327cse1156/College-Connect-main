@@ -14,16 +14,20 @@ const transporter = nodemailer.createTransport({
 export const autoUpgradeRoles = async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
     let upgradedCount = 0;
 
     const studentsToSenior = await User.find({
       role: "student",
       verificationStatus: "approved",
-      yearOfGraduation: currentYear.toString(),
+      graduationYear: currentYear,
+      currentYear: { $gte: 4 },
     });
 
     for (const user of studentsToSenior) {
       user.role = "senior";
+      user.currentYear = 4;
+      user.roleLastUpdated = new Date();
       await user.save();
       upgradedCount++;
 
@@ -60,11 +64,22 @@ export const autoUpgradeRoles = async (req, res) => {
     const seniorsToAlumni = await User.find({
       role: "senior",
       verificationStatus: "approved",
-      yearOfGraduation: { $lt: currentYear.toString() },
+      graduationYear: { $lt: currentYear },
     });
+
+    if (currentMonth >= 6) {
+      const currentYearGraduates = await User.find({
+        role: { $in: ["student", "senior"] },
+        verificationStatus: "approved",
+        graduationYear: currentYear,
+      });
+      seniorsToAlumni.push(...currentYearGraduates);
+    }
 
     for (const user of seniorsToAlumni) {
       user.role = "alumni";
+      user.currentYear = 5;
+      user.roleLastUpdated = new Date();
       await user.save();
       upgradedCount++;
 
@@ -144,9 +159,32 @@ export const autoUpgradeRoles = async (req, res) => {
       success: true,
       message: `Role upgrade completed: ${upgradedCount} users upgraded`,
       details: {
+        studentsToSenior: studentsToSenior.length,
+        seniorsToAlumni: seniorsToAlumni.length,
+        overdueStudents: overdueStudents.length,
+      },
+    });
+    const allActiveStudents = await User.find({
+      role: { $in: ["student", "senior"] },
+      verificationStatus: "approved",
+      admissionYear: { $exists: true },
+      graduationYear: { $gte: currentYear },
+    });
+
+    for (const user of allActiveStudents) {
+      const updated = await user.updateRoleIfNeeded();
+      if (updated && updated.updated) {
+        upgradedCount++;
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Role upgrade completed: ${upgradedCount} users upgraded`,
+      details: {
         studentToSenior: studentsToSenior.length,
         seniorToAlumni: seniorsToAlumni.length,
-        overdueStudents: overdueStudents.length,
+        totalUpgraded: upgradedCount,
       },
     });
   } catch (error) {
@@ -184,8 +222,8 @@ export const getUpgradePreview = async (req, res) => {
     res.status(200).json({
       success: true,
       preview: {
-        studentToSenior,
-        seniorToAlumni,
+        studentsToSenior,
+        seniorsToAlumni,
         overdueStudents,
         totalToUpgrade: studentsToSenior + seniorsToAlumni + overdueStudents,
       },

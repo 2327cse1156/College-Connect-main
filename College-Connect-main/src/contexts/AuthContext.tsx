@@ -11,8 +11,9 @@ interface User {
   skills?: string[];
   avatar?: string;
   location?: string;
-  yearOfAdmission?: string;
-  yearOfGraduation?: string;
+  admissionYear?: number;
+  graduationYear?: number;
+  currentYear?: number;
   course?: string;
   branch?: string;
   createdAt?: string;
@@ -26,7 +27,8 @@ interface User {
   verificationStatus?: "pending" | "approved" | "rejected";
   studentIdUrl?: string;
   rejectionReason?: string;
-  isAdmin?:boolean;
+  isAdmin?: boolean;
+  roleLastUpdated?: string;
 }
 
 interface AuthContextType {
@@ -74,7 +76,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     email: string,
     password: string,
     role: string,
-    studentIdFile?: File | null
+    studentIdFile?: File | null,
+    admissionYear?: number,
+    graduationYear?: number
   ) => {
     setLoading(true);
     try {
@@ -83,7 +87,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       formData.append("email", email);
       formData.append("password", password);
       formData.append("role", role);
-
+      if (admissionYear !== undefined && admissionYear !== null)
+        formData.append("admissionYear", String(admissionYear));
+      if (graduationYear !== undefined && graduationYear !== null)
+        formData.append("graduationYear", String(graduationYear));
       if (studentIdFile) {
         formData.append("studentId", studentIdFile);
       }
@@ -140,8 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           }`,
           { duration: 6000 }
         );
-      }
-      else{
+      } else {
         toast.error(errorData?.error || "Login failed");
       }
       throw err;
