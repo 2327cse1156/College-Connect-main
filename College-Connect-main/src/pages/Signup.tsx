@@ -4,12 +4,12 @@ import {
   Mail,
   Lock,
   User,
-  GraduationCap,
   Eye,
   EyeOff,
   Upload,
   X,
   FileText,
+  Calendar,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
@@ -20,6 +20,8 @@ const Signup = () => {
     email: "",
     password: "",
     role: "student",
+    admissionYear: new Date().getFullYear().toString(),
+    graduationYear: "",
   });
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
@@ -28,17 +30,40 @@ const Signup = () => {
   const [studentIdFile, setStudentIdFile] = useState<File | null>(null);
   const [studentIdPreview, setStudentIdPreview] = useState<string>("");
   const [fileError, setFileError] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState(false);
 
   const navigate = useNavigate();
   const { signup } = useAuth();
 
   const allowedColleges = ["kiet.edu", "abc.edu", "xyz.edu"];
+  
+  // Generate year options
+  const currentYear = new Date().getFullYear();
+  const admissionYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  const graduationYears = Array.from({ length: 10 }, (_, i) => currentYear + i);
+
+  const getPasswordStrength = (password: string) => {
+    if (password.length === 0) return { strength: "", color: "" };
+    if (password.length < 6) return { strength: "Weak", color: "text-red-500" };
+    if (password.length < 10) return { strength: "Medium", color: "text-yellow-500" };
+    return { strength: "Strong", color: "text-green-500" };
+  };
+
+  const passwordStrength = getPasswordStrength(formData.password);
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const email = e.target.value;
     setFormData({ ...formData, email });
 
-    if (formData.role === "student" && email.includes("@")) {
+    // Basic email regex validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (email && !emailRegex.test(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    if (email.includes("@")) {
       const domain = email.split("@")[1].toLowerCase();
       setEmailError(
         !allowedColleges.includes(domain)
@@ -59,41 +84,34 @@ const Signup = () => {
     );
   };
 
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRole = e.target.value;
-    setFormData({ ...formData, role: newRole });
-    if (newRole !== "student") {
-      setStudentIdFile(null);
-      setStudentIdPreview("");
-      setFileError("");
-    }
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {
-      console.log("No file selected");
-      return;
-    }
+    if (!file) return;
 
+    setUploadProgress(true);
+    
     const allowedTypes = [
       "image/jpeg",
       "image/png",
       "application/pdf",
       "image/jpg",
     ];
+    
     if (!allowedTypes.includes(file.type)) {
       setFileError("Only JPG, PNG, and PDF files are allowed");
       setStudentIdFile(null);
+      setUploadProgress(false);
       return;
     }
+    
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       setFileError("File size must be less than 5MB");
       setStudentIdFile(null);
+      setUploadProgress(false);
       return;
     }
-    console.log("File Validation passed");
+
     setFileError("");
     setStudentIdFile(file);
 
@@ -101,12 +119,12 @@ const Signup = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setStudentIdPreview(reader.result as string);
-        console.log("Preview Generated");
+        setUploadProgress(false);
       };
       reader.readAsDataURL(file);
     } else {
       setStudentIdPreview("");
-      console.log("PDF selected, no preview");
+      setUploadProgress(false);
     }
   };
 
@@ -114,59 +132,48 @@ const Signup = () => {
     setStudentIdFile(null);
     setStudentIdPreview("");
     setFileError("");
+    
+    // Fix: File input reset
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
   };
-
-  const fileInput = document.querySelector(
-    'input[type="file]'
-  ) as HTMLInputElement;
-  if (fileInput) fileInput.value = "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form Submitted");
-    console.log("Role:", formData.role);
-    console.log("Student ID File: ", studentIdFile);
 
     if (emailError || passwordError || fileError) {
       toast.error("Please fix the errors before submitting");
       return;
     }
 
-    if (formData.role === "student" && !studentIdFile) {
+    if (!studentIdFile) {
       toast.error("Please upload your student ID card");
-      console.log("No student Id Card Uploaded");
+      return;
+    }
 
+    if (!formData.graduationYear) {
+      toast.error("Please select your expected graduation year");
       return;
     }
 
     try {
       setLoading(true);
-      console.log("Calling signup with:", {
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        hasFile: !!studentIdFile,
-      });
       await signup(
         formData.name,
         formData.email,
         formData.password,
         formData.role,
-        studentIdFile
+        studentIdFile,
+        formData.admissionYear,
+        formData.graduationYear
       );
 
-      if (formData.role === "student") {
-        toast.success("Account created! Waiting for admin verification.");
-      } else {
-        toast.success("Account created successfully!");
-      }
+      toast.success("Account created! Waiting for admin verification.");
       navigate("/");
     } catch (error: any) {
-      console.error("Signup Error:", error);
       toast.error(
         error.message || "Failed to create account. Please try again."
       );
-      console.error("Signup error:", error);
     } finally {
       setLoading(false);
     }
@@ -235,7 +242,7 @@ const Signup = () => {
                 />
               </div>
               {emailError && (
-                <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                <p className="text-red-500 text-sm mt-1" role="alert">{emailError}</p>
               )}
             </div>
 
@@ -263,6 +270,7 @@ const Signup = () => {
                   type="button"
                   className="absolute inset-y-0 right-3 my-auto text-gray-400 hover:text-gray-600"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -271,124 +279,159 @@ const Signup = () => {
                   )}
                 </button>
               </div>
-              {passwordError && (
-                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
-              )}
+              <div className="flex justify-between items-center mt-1">
+                {passwordError && (
+                  <p className="text-red-500 text-sm" role="alert">{passwordError}</p>
+                )}
+                {!passwordError && passwordStrength.strength && (
+                  <p className={`text-sm ${passwordStrength.color}`}>
+                    {passwordStrength.strength}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <input type="hidden" name="role" value="student" />
+            {/* Academic Years */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="admissionYear"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Admission Year
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute inset-y-0 left-3 my-auto text-gray-400 h-5 w-5" />
+                  <select
+                    id="admissionYear"
+                    value={formData.admissionYear}
+                    onChange={(e) =>
+                      setFormData({ ...formData, admissionYear: e.target.value })
+                    }
+                    className="pl-10 w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                    required
+                    disabled={loading}
+                  >
+                    {admissionYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="graduationYear"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Expected Graduation
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute inset-y-0 left-3 my-auto text-gray-400 h-5 w-5" />
+                  <select
+                    id="graduationYear"
+                    value={formData.graduationYear}
+                    onChange={(e) =>
+                      setFormData({ ...formData, graduationYear: e.target.value })
+                    }
+                    className="pl-10 w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                    required
+                    disabled={loading}
+                  >
+                    <option value="">Select Year</option>
+                    {graduationYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <p className="text-sm text-blue-800">
-                <strong>📚 Students Only:</strong>Currently accepting student
+                <strong>📚 Students Only:</strong> Currently accepting student
                 registrations. Your role will be automatically updated as you
-                prgress through your academic journey.
+                progress through your academic journey.
               </p>
             </div>
 
-            {/* Role */}
-            {/* <div>
-              <label
-                htmlFor="role"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                I am a...
+            {/* Student ID Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Student ID Card <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <GraduationCap className="absolute inset-y-0 left-3 my-auto text-gray-400 h-5 w-5" />
-                <select
-                  id="role"
-                  value={formData.role}
-                  onChange={handleRoleChange}
-                  className="pl-10 w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                  required
-                  disabled={loading}
-                >
-                  <option value="student">Student</option>
-                  <option value="senior">Senior</option>
-                  <option value="alumni">Alumni</option>
-                </select>
-              </div>
-            </div> */}
-
-            {formData.role === "student" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Student ID Card <span className="text-red-500">*</span>
-                </label>
-                {!studentIdFile ? (
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-500 transition-colors bg-gray-50">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-8 h-8 mb-2 text-gray-400"></Upload>
-                      <p className="text-sm text-gray-500 mt-1">
-                        <span className="font-semibold">Click to upload</span>{" "}
-                        or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        JPG, PNG or PDF (Max 5MB)
-                      </p>
-                    </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/jpeg,image/png,image/jpg,application/pdf"
-                      onChange={handleFileChange}
-                      disabled={loading}
-                    />
-                  </label>
-                ) : (
-                  <div className="relative border-2 border-indigo-500 rounded-xl p-4 bg-indigo-50">
-                    <button
-                      type="button"
-                      onClick={removeFile}
-                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
-                      disabled={loading}
-                      title="Remove file"
-                    >
-                      <X className="w-4 h-4"></X>
-                    </button>
-                    {studentIdPreview ? (
-                      <img
-                        src={studentIdPreview}
-                        alt="Student ID preivew"
-                        className="w-full h-48 object-contain rounded-lg"
-                      ></img>
-                    ) : (
-                      <div className="flex items-center justify-center h-24">
-                        <FileText className="w-12 h-12 text-indigo-600" />
-                        <span className="ml-2 text-sm text-gray-700 font-medium">
-                          {studentIdFile.name}
-                        </span>
-                      </div>
-                    )}
-                    <p className="text-center text-xs text-green-600 font-medium mt-2">
-                      ✓ File uploaded successfully
+              {!studentIdFile ? (
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-500 transition-colors bg-gray-50">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-8 h-8 mb-2 text-gray-400" />
+                    <p className="text-sm text-gray-500 mt-1">
+                      <span className="font-semibold">Click to upload</span> or
+                      drag and drop
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      JPG, PNG or PDF (Max 5MB)
                     </p>
                   </div>
-                )}
-                {fileError && (
-                  <p className="text-red-500 text-sm mt-1">{fileError}</p>
-                )}
-                <p className="text-xs text-gray-500 mt-2">
-                  ⚠️ Your account will be verified by admin within 24-48 hours
-                </p>
-              </div>
-            )}
-            {process.env.NODE_ENV === "development" &&
-              formData.role === "student" && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-xs">
-                  <p>
-                    <strong>Debug:</strong>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/jpeg,image/png,image/jpg,application/pdf"
+                    onChange={handleFileChange}
+                    disabled={loading}
+                    aria-label="Upload student ID card"
+                  />
+                </label>
+              ) : (
+                <div className="relative border-2 border-indigo-500 rounded-xl p-4 bg-indigo-50">
+                  <button
+                    type="button"
+                    onClick={removeFile}
+                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
+                    disabled={loading}
+                    title="Remove file"
+                    aria-label="Remove uploaded file"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  {uploadProgress ? (
+                    <div className="flex items-center justify-center h-48">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    </div>
+                  ) : studentIdPreview ? (
+                    <img
+                      src={studentIdPreview}
+                      alt="Student ID preview"
+                      className="w-full h-48 object-contain rounded-lg"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-24">
+                      <FileText className="w-12 h-12 text-indigo-600" />
+                      <span className="ml-2 text-sm text-gray-700 font-medium">
+                        {studentIdFile.name}
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-center text-xs text-green-600 font-medium mt-2">
+                    ✓ File uploaded successfully
                   </p>
-                  <p>File selected: {studentIdFile ? "✓ Yes" : "✗ No"}</p>
-                  {studentIdFile && <p>File name: {studentIdFile.name}</p>}
                 </div>
               )}
+              {fileError && (
+                <p className="text-red-500 text-sm mt-1" role="alert">{fileError}</p>
+              )}
+              <p className="text-xs text-gray-500 mt-2">
+                ⚠️ Your account will be verified by admin within 24-48 hours
+              </p>
+            </div>
 
             {/* Submit */}
             <button
               type="submit"
-              className="w-full py-3 px-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-50"
+              className="w-full py-3 px-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={
                 loading ||
                 emailError !== "" ||

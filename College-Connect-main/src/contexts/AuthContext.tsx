@@ -2,10 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-// ---------------------------
-// Types
-// ---------------------------
-export interface User {
+interface User {
   _id: string;
   name: string;
   email: string;
@@ -29,7 +26,7 @@ export interface User {
   verificationStatus?: "pending" | "approved" | "rejected";
   studentIdUrl?: string;
   rejectionReason?: string;
-  isAdmin?: boolean;
+  isAdmin?:boolean;
 }
 
 interface AuthContextType {
@@ -50,40 +47,28 @@ interface AuthContextType {
   updateProfile: (data: FormData) => Promise<User>;
 }
 
-// ---------------------------
-// Context Setup
-// ---------------------------
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context)
-    throw new Error("❌ useAuth must be used within an AuthProvider");
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
 
-// ---------------------------
-// Provider Component
-// ---------------------------
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE = import.meta.env.VITE_API_URL;
-  const AUTH_URL = `${API_BASE}/auth`;
-  const PROFILE_URL = `${API_BASE}/profile`;
+  const API_URL = import.meta.env.VITE_API_URL + "/auth";
+  const PROFILE_URL = import.meta.env.VITE_API_URL + "/profile";
 
-  // Auto-fetch user profile on mount
   useEffect(() => {
-    void getProfile();
+    getProfile().catch(() => setCurrentUser(null));
   }, []);
 
-  // ---------------------------
-  // AUTH METHODS
-  // ---------------------------
-
+  // ✅ Signup
   const signup = async (
     name: string,
     email: string,
@@ -98,21 +83,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       formData.append("email", email);
       formData.append("password", password);
       formData.append("role", role);
-      if (studentIdFile) formData.append("studentId", studentIdFile);
 
-      const { data } = await axios.post(`${AUTH_URL}/signup`, formData, {
+      if (studentIdFile) {
+        formData.append("studentId", studentIdFile);
+      }
+
+      const res = await axios.post(`${API_URL}/signup`, formData, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const { user } = data;
-      if (user.role === "student" && user.verificationStatus === "pending") {
-        toast.success("✅ Account created! Awaiting admin verification.");
+      if (
+        res.data.user.role === "student" &&
+        res.data.user.verificationStatus === "pending"
+      ) {
+        toast.success(
+          "✅ Account created! Please wait for admin verification.",
+          { duration: 5000 }
+        );
         setCurrentUser(null);
-      } else {
-        setCurrentUser(user);
-        toast.success("🎉 Account created successfully!");
+        return;
       }
+
+      setCurrentUser(res.data.user);
+      toast.success("🎉 Account created successfully!");
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Signup failed");
       throw err;
@@ -121,28 +115,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // ✅ Login
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { data } = await axios.post(
-        `${AUTH_URL}/login`,
+      const res = await axios.post(
+        `${API_URL}/login`,
         { email, password },
         { withCredentials: true }
       );
-      setCurrentUser(data.user);
-      toast.success("✅ Logged in successfully!");
+      setCurrentUser(res.data.user);
+      toast.success("Logged in successfully!");
     } catch (err: any) {
-      const { data } = err.response || {};
-      if (data?.verificationStatus === "pending") {
-        toast.error("⏳ Account pending admin verification.");
-      } else if (data?.verificationStatus === "rejected") {
+      const errorData = err.response?.data;
+      if (errorData?.verificationStatus === "pending") {
+        toast.error(
+          "⏳ Your account is pending verification. Please wait for admin approval.",
+          { duration: 5000 }
+        );
+      } else if (errorData?.verificationStatus === "rejected") {
         toast.error(
           `❌ Account rejected: ${
-            data.rejectionReason || "Contact admin for details."
-          }`
+            errorData.rejectionReason || "Contact admin for details"
+          }`,
+          { duration: 6000 }
         );
-      } else {
-        toast.error(data?.error || "Login failed.");
+      }
+      else{
+        toast.error(errorData?.error || "Login failed");
       }
       throw err;
     } finally {
@@ -150,68 +150,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // ✅ Logout
   const logout = async () => {
     try {
-      await axios.post(`${AUTH_URL}/logout`, {}, { withCredentials: true });
+      await axios.post(`${API_URL}/logout`, {}, { withCredentials: true });
       setCurrentUser(null);
-      toast.success("👋 Logged out successfully!");
+      toast.success("Logged out successfully!");
     } catch {
-      toast.error("Logout failed. Try again.");
+      toast.error("Logout failed");
     }
   };
 
+  // ✅ Get Profile
   const getProfile = async (): Promise<User | null> => {
     try {
-      const { data } = await axios.get(PROFILE_URL, { withCredentials: true });
-      setCurrentUser(data.user);
-      return data.user;
+      const res = await axios.get(PROFILE_URL, { withCredentials: true });
+      setCurrentUser(res.data.user);
+      return res.data.user;
     } catch {
       setCurrentUser(null);
       return null;
     }
   };
 
-  const updateProfile = async (formData: FormData): Promise<User> => {
+  // ✅ Update Profile (Cloudinary avatar + new fields)
+  const updateProfile = async (data: FormData): Promise<User> => {
     try {
-      const { data } = await axios.put(PROFILE_URL, formData, {
+      const res = await axios.put(PROFILE_URL, data, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setCurrentUser(data.user);
-      toast.success("✅ Profile updated successfully!");
-      return data.user;
+      setCurrentUser(res.data.user);
+      toast.success("Profile updated!");
+      return res.data.user;
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Profile update failed");
       throw err;
     }
   };
 
+  // ✅ Forgot Password
   const forgotPassword = async (email: string) => {
     try {
-      await axios.post(`${AUTH_URL}/forgot-password`, { email });
-      toast.success("📧 Reset link sent! Check your inbox.");
+      await axios.post(
+        `${API_URL}/forgot-password`,
+        { email },
+        { withCredentials: true }
+      );
+      toast.success("Reset link sent! Check your email.");
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to send reset link");
+      toast.error(err.response?.data?.error || "Failed to send reset email");
       throw err;
     }
   };
 
+  // ✅ Reset Password
   const resetPassword = async (token: string, newPassword: string) => {
     try {
-      await axios.post(`${AUTH_URL}/reset-password`, {
-        token,
-        newPassword,
-      });
-      toast.success("🔑 Password reset successfully!");
+      await axios.post(
+        `${API_URL}/reset-password`,
+        { token, newPassword },
+        { withCredentials: true }
+      );
+      toast.success("Password reset successfully!");
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Password reset failed");
+      toast.error(err.response?.data?.error || "Failed to reset password");
       throw err;
     }
   };
 
-  // ---------------------------
-  // PROVIDER RETURN
-  // ---------------------------
   return (
     <AuthContext.Provider
       value={{

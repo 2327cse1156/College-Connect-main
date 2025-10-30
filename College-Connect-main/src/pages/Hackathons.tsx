@@ -4,6 +4,7 @@ import api from "../services/api";
 import { useDebounce } from "../hooks/useDebounce";
 import toast from "react-hot-toast";
 import { Calendar, CheckCircle, ExternalLink, Filter, MapPin, Search, Users } from "lucide-react";
+
 interface Hackathon {
   _id: string;
   title: string;
@@ -20,6 +21,7 @@ interface Hackathon {
   tags: string[];
   registeredUsers: string[];
 }
+
 function Hackathons() {
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [filteredHackathons, setFilteredHackathons] = useState<Hackathon[]>([]);
@@ -34,6 +36,7 @@ function Hackathons() {
   useEffect(() => {
     fetchHackathons();
   }, [debouncedSearch, typeFilter, statusFilter]);
+
   useEffect(() => {
     filterHackathons();
   }, [debouncedSearch, typeFilter, statusFilter, hackathons]);
@@ -50,6 +53,7 @@ function Hackathons() {
       setLoading(false);
     }
   };
+
   const filterHackathons = () => {
     let filtered = [...hackathons];
 
@@ -71,20 +75,35 @@ function Hackathons() {
     setFilteredHackathons(filtered);
   };
 
-  const handleRegister = async (hackathonId: string) => {
+  // Modified register function with website redirect
+  const handleRegister = async (hackathon: Hackathon) => {
     if (!currentUser) {
       toast.error("Please login to register");
       return;
     }
 
     try {
+      // Register in your database
       await api.post(
-        `/hackathons/${hackathonId}/register`,
+        `/hackathons/${hackathon._id}/register`,
         {},
         { withCredentials: true }
       );
-      toast.success("Registered successfully!");
+      
+      toast.success("Registration successful! Redirecting to hackathon website...");
+      
+      // Refresh data
       fetchHackathons();
+
+      // Redirect to hackathon website after 1 second
+      setTimeout(() => {
+        if (hackathon.websiteUrl) {
+          window.open(hackathon.websiteUrl, '_blank', 'noopener,noreferrer');
+        } else {
+          toast.error("No website URL available for this hackathon");
+        }
+      }, 1000);
+
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Registration failed");
     }
@@ -115,6 +134,7 @@ function Hackathons() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -127,6 +147,7 @@ function Hackathons() {
           </p>
         </div>
 
+        {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap gap-4">
           <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -168,9 +189,10 @@ function Hackathons() {
           </button>
         </div>
 
+        {/* Hackathon Cards */}
         {filteredHackathons.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p>No Hackathons Found</p>
+            <p className="text-gray-500">No Hackathons Found</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -191,12 +213,12 @@ function Hackathons() {
                   <h3 className="text-xl font-semibold text-gray-900">
                     {hackathon.title}
                   </h3>
+                  
+                  {/* Details */}
                   <div className="space-y-2">
                     <div className="flex items-center text-gray-600">
                       <Calendar className="h-4 w-4 mr-2" />
-                      {new Date(
-                        hackathon.startDate
-                      ).toLocaleDateString()} -{" "}
+                      {new Date(hackathon.startDate).toLocaleDateString()} -{" "}
                       {new Date(hackathon.endDate).toLocaleDateString()}
                     </div>
                     <div className="flex items-center text-gray-600">
@@ -209,6 +231,7 @@ function Hackathons() {
                     </div>
                   </div>
 
+                  {/* Tags */}
                   {hackathon.tags && hackathon.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {hackathon.tags.map((tag, idx) => (
@@ -221,6 +244,8 @@ function Hackathons() {
                       ))}
                     </div>
                   )}
+
+                  {/* Prize & Status */}
                   <div className="flex items-center justify-between">
                     {hackathon.prizes && (
                       <span className="text-sm font-medium text-indigo-600">
@@ -237,7 +262,9 @@ function Hackathons() {
                       {hackathon.registrationOpen ? "Open" : "Closed"}
                     </span>
                   </div>
-                                    <div className="flex space-x-2">
+
+                  {/* Action Buttons */}
+                  <div className="flex space-x-2">
                     {isRegistered(hackathon) ? (
                       <>
                         <button
@@ -247,29 +274,52 @@ function Hackathons() {
                           <CheckCircle className="h-4 w-4 mr-2" />
                           Unregister
                         </button>
+                        {/* Visit Website button for registered users */}
+                        {hackathon.websiteUrl && (
+                          <a
+                            href={hackathon.websiteUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center justify-center"
+                            title="Visit hackathon website"
+                          >
+                            <ExternalLink className="h-5 w-5 text-gray-600" />
+                          </a>
+                        )}
                       </>
                     ) : (
-                      <button
-                        onClick={() => handleRegister(hackathon._id)}
-                        disabled={!hackathon.registrationOpen}
-                        className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Register Now
-                      </button>
-                    )}
+                      <>
+                        {/* Register button - redirects to website */}
+                        <button
+                          onClick={() => handleRegister(hackathon)}
+                          disabled={!hackathon.registrationOpen}
+                          className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                        >
+                          {hackathon.websiteUrl ? "Register & Visit" : "Register Now"}
+                        </button>
 
-                    {hackathon.websiteUrl && (
-                      <a
-                        href={hackathon.websiteUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Visit hackathon website"
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                      >
-                        <ExternalLink className="h-5 w-5 text-gray-600" />
-                      </a>
+                        {/* Optional: Direct link icon */}
+                        {hackathon.websiteUrl && (
+                          <a
+                            href={hackathon.websiteUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center justify-center"
+                            title="Visit hackathon website"
+                          >
+                            <ExternalLink className="h-5 w-5 text-gray-600" />
+                          </a>
+                        )}
+                      </>
                     )}
                   </div>
+
+                  {/* Info message */}
+                  {!isRegistered(hackathon) && hackathon.websiteUrl && hackathon.registrationOpen && (
+                    <p className="text-xs text-gray-500 text-center">
+                      💡 You'll be redirected to the official website after registration
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
