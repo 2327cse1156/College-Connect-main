@@ -201,6 +201,11 @@ npm run dev
 
 ---
 
+👨‍💻 Contributors
+<table> <tr> <td align="center"> <a href="https://github.com/rachit224agarwal"> <img src="https://avatars.githubusercontent.com/rachit224agarwal" width="80px;" alt="Rachit Agarwal"/><br /> <sub><b>Rachit Agarwal</b></sub> </a> </td> <td align="center"> <a href="https://github.com/Raunakushwa"> <img src="https://avatars.githubusercontent.com/Raunakushwa" width="80px;" alt="Raunak Kushwaha"/><br /> <sub><b>Raunak Kushwaha</b></sub> </a> </td> <td align="center"> <a href="https://github.com/2327cse1156"> <img src="https://avatars.githubusercontent.com/2327cse1156" width="80px;" alt="Ansh Kaushal"/><br /> <sub><b>Ansh Kaushal</b></sub> </a> </td> </tr> </table>
+
+---
+
 ## 📜 License
 
 This project is licensed under the **MIT License**.
