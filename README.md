@@ -186,9 +186,8 @@ npm run dev
 
 ## 🎥 Screenshots / Demo
 
-> *Add UI screenshots or Loom demo links here.*
+![College_Connect](https://github.com/user-attachments/assets/68b90a76-9b8c-4a2a-a440-b92b632feb4b)
 
-`![Screenshot](./assets/screenshot.png)`
 
 ---
 
