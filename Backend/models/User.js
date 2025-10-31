@@ -1,4 +1,7 @@
-// models/User.js
+// ============================================
+// FIXED: Backend/models/User.js
+// ============================================
+
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -15,6 +18,17 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+    personalEmail: {
+      type: String,
+      default: "",
+      validate: {
+        validator: function (v) {
+          if (!v) return true;
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+        },
+        message: "Invalid email format",
+      },
+    },
     password: {
       type: String,
       required: true,
@@ -24,26 +38,28 @@ const userSchema = new mongoose.Schema(
       enum: ["student", "senior", "alumni", "admin"],
       default: "student",
     },
-    
+
     // ============================================
-    // NEW FIELDS FOR ROLE TRANSITION
+    // ACADEMIC FIELDS
     // ============================================
     admissionYear: {
       type: Number,
-      required: function() {
-        return this.role === 'student' || this.role === 'senior' || this.role === 'alumni';
-      },
-      default: function() {
-        return new Date().getFullYear();
+      required: function () {
+        return (
+          this.role === "student" ||
+          this.role === "senior" ||
+          this.role === "alumni"
+        );
       },
     },
     graduationYear: {
       type: Number,
-      required: function() {
-        return this.role === 'student' || this.role === 'senior' || this.role === 'alumni';
-      },
-      default: function() {
-        return new Date().getFullYear() + 4;
+      required: function () {
+        return (
+          this.role === "student" ||
+          this.role === "senior" ||
+          this.role === "alumni"
+        );
       },
     },
     currentYear: {
@@ -51,15 +67,14 @@ const userSchema = new mongoose.Schema(
       default: 1,
       min: 1,
       max: 5,
-      // 1-4 = Student/Senior years, 5 = Alumni (graduated)
     },
     roleLastUpdated: {
       type: Date,
       default: Date.now,
     },
-    
+
     // ============================================
-    // EXISTING FIELDS
+    // OTHER FIELDS
     // ============================================
     verificationStatus: {
       type: String,
@@ -78,9 +93,15 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    
-    // Optional: Additional profile fields
     bio: {
+      type: String,
+      default: "",
+    },
+    avatar: {
+      type: String,
+      default: "",
+    },
+    location: {
       type: String,
       default: "",
     },
@@ -92,18 +113,50 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    course: {
+      type: String,
+      default: "",
+    },
+    college: {
+      type: String,
+      default: "",
+    },
+    website: {
+      type: String,
+      default: "",
+    },
+    linkedin: {
+      type: String,
+      default: "",
+    },
+    github: {
+      type: String,
+      default: "",
+    },
+    resumeUrl: {
+      type: String,
+      default: "",
+    },
+    skills: {
+      type: [String],
+      default: [],
+    },
+    activities: {
+      type: Array,
+      default: [],
+    },
     interests: {
       type: [String],
       default: [],
     },
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt automatically
+    timestamps: true,
   }
 );
 
 // ============================================
-// INDEXES FOR BETTER QUERY PERFORMANCE
+// INDEXES
 // ============================================
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
@@ -112,99 +165,208 @@ userSchema.index({ graduationYear: 1 });
 userSchema.index({ admissionYear: 1 });
 
 // ============================================
-// VIRTUAL: Get ordinal suffix for current year
+// VIRTUAL: Current Year Display
 // ============================================
-userSchema.virtual('currentYearDisplay').get(function() {
+userSchema.virtual("currentYearDisplay").get(function () {
   const year = this.currentYear;
-  if (year >= 5) return 'Graduated';
-  const suffixes = ['th', 'st', 'nd', 'rd'];
+  if (year >= 5) return "Graduated";
+  const suffixes = ["th", "st", "nd", "rd"];
   const v = year % 100;
   return `${year}${suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]} Year`;
 });
 
 // ============================================
+// STATIC METHOD: Calculate Year from Admission
+// ============================================
+userSchema.statics.calculateYearFromAdmission = function (
+  admissionYear,
+  graduationYear
+) {
+  if (!admissionYear || !graduationYear) return 1;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-11
+
+  // Calculate years since admission
+  // Academic year typically starts in July/August (month 6/7)
+  let yearsSinceAdmission = currentYear - admissionYear;
+
+  // If we're before August, subtract 1 year
+  if (currentMonth < 7) {
+    yearsSinceAdmission -= 1;
+  }
+
+  // Current year should be yearsSinceAdmission + 1
+  // Example: Admitted 2023, Current 2025 Oct → 2025-2023=2, +1 = 3rd year ✅
+  const calculatedYear = yearsSinceAdmission + 1;
+
+  // Ensure it's between 1 and 5
+  return Math.max(1, Math.min(calculatedYear, 5));
+};
+
+// ============================================
+// METHOD: Calculate Current Academic Year
+// ============================================
+userSchema.methods.calculateCurrentYear = function () {
+  return this.constructor.calculateYearFromAdmission(
+    this.admissionYear,
+    this.graduationYear
+  );
+};
+
+// ============================================
 // METHOD: Check if user needs role update
 // ============================================
-userSchema.methods.needsRoleUpdate = function() {
+userSchema.methods.needsRoleUpdate = function () {
   if (!this.admissionYear || !this.graduationYear) return false;
-  
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth();
-  
-  let yearsSinceAdmission = currentYear - this.admissionYear;
-  if (currentMonth < 7) yearsSinceAdmission -= 1; // Before August
-  
-  const calculatedYear = Math.max(1, Math.min(yearsSinceAdmission + 1, 4));
-  const hasGraduated = currentYear >= this.graduationYear && currentMonth >= 7;
-  
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  // Check if graduated (after July of graduation year)
+  const hasGraduated =
+    currentYear > this.graduationYear ||
+    (currentYear === this.graduationYear && currentMonth >= 6);
+
+  // Calculate current academic year
+  const calculatedYear = this.calculateCurrentYear();
+
+  // Determine expected role
   let expectedRole;
   if (hasGraduated) {
-    expectedRole = 'alumni';
+    expectedRole = "alumni";
   } else if (calculatedYear >= 4) {
-    expectedRole = 'senior';
+    expectedRole = "senior";
   } else {
-    expectedRole = 'student';
+    expectedRole = "student";
   }
-  
-  return this.role !== expectedRole;
+
+  // Check if role or year needs update
+  return this.role !== expectedRole || this.currentYear !== calculatedYear;
 };
 
 // ============================================
 // METHOD: Update role if needed
 // ============================================
-userSchema.methods.updateRoleIfNeeded = async function() {
-  if (!this.needsRoleUpdate()) return false;
-  
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth();
-  
-  let yearsSinceAdmission = currentYear - this.admissionYear;
-  if (currentMonth < 7) yearsSinceAdmission -= 1;
-  
-  const calculatedYear = Math.max(1, Math.min(yearsSinceAdmission + 1, 4));
-  const hasGraduated = currentYear >= this.graduationYear && currentMonth >= 7;
-  
-  const oldRole = this.role;
-  
-  if (hasGraduated) {
-    this.role = 'alumni';
-    this.currentYear = 5;
-  } else if (calculatedYear >= 4) {
-    this.role = 'senior';
-    this.currentYear = calculatedYear;
-  } else {
-    this.role = 'student';
-    this.currentYear = calculatedYear;
+userSchema.methods.updateRoleIfNeeded = async function () {
+  if (!this.admissionYear || !this.graduationYear) {
+    return false;
   }
-  
-  this.roleLastUpdated = new Date();
-  await this.save();
-  
-  return {
-    updated: true,
-    oldRole,
-    newRole: this.role,
-    currentYear: this.currentYear
-  };
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  // Check if graduated
+  const hasGraduated =
+    currentYear > this.graduationYear ||
+    (currentYear === this.graduationYear && currentMonth >= 6);
+
+  // Calculate current academic year
+  const calculatedYear = this.calculateCurrentYear();
+
+  const oldRole = this.role;
+  const oldYear = this.currentYear;
+  let updated = false;
+
+  // Update role based on academic progress
+  if (hasGraduated) {
+    if (this.role !== "alumni" || this.currentYear !== 5) {
+      this.role = "alumni";
+      this.currentYear = 5;
+      updated = true;
+    }
+  } else if (calculatedYear >= 4) {
+    if (this.role !== "senior" || this.currentYear !== calculatedYear) {
+      this.role = "senior";
+      this.currentYear = calculatedYear;
+      updated = true;
+    }
+  } else {
+    if (this.role !== "student" || this.currentYear !== calculatedYear) {
+      this.role = "student";
+      this.currentYear = calculatedYear;
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    this.roleLastUpdated = new Date();
+    await this.save();
+
+    return {
+      updated: true,
+      oldRole,
+      newRole: this.role,
+      oldYear,
+      currentYear: this.currentYear,
+    };
+  }
+
+  return false;
 };
 
 // ============================================
-// MIDDLEWARE: Update role before login (optional)
+// MIDDLEWARE: Set currentYear on creation
 // ============================================
-userSchema.pre('save', async function(next) {
-  // Only run on existing users, not on creation
-  if (!this.isNew && this.isModified('admissionYear', 'graduationYear')) {
-    await this.updateRoleIfNeeded();
+userSchema.pre("save", function (next) {
+  // On new user creation, calculate currentYear
+  if (this.isNew && this.admissionYear && this.graduationYear) {
+    this.currentYear = this.constructor.calculateYearFromAdmission(
+      this.admissionYear,
+      this.graduationYear
+    );
+
+    // Also set initial role based on year
+    if (this.currentYear >= 4) {
+      this.role = "senior";
+    } else {
+      this.role = "student";
+    }
   }
+
   next();
 });
 
 // Set virtuals to be included in JSON
-userSchema.set('toJSON', { virtuals: true });
-userSchema.set('toObject', { virtuals: true });
+userSchema.set("toJSON", {
+  virtuals: true,
+  transform: function (doc, ret) {
+    ret.createdAt = doc.createdAt;
+    ret.updatedAt = doc.updatedAt;
+    return ret;
+  },
+});
+
+userSchema.set("toObject", {
+  virtuals: true,
+  transform: function (doc, ret) {
+    ret.createdAt = doc.createdAt;
+    ret.updatedAt = doc.updatedAt;
+    return ret;
+  },
+});
 
 const User = mongoose.model("User", userSchema);
 
 export default User;
+
+// ============================================
+// EXAMPLE CALCULATIONS (for reference)
+// ============================================
+// Admission: 2023, Current Date: Oct 2025
+// - Years since admission: 2025 - 2023 = 2
+// - Current month: 9 (October) >= 7 (August), so no adjustment
+// - Calculated year: 2 + 1 = 3 (3rd year) ✅
+//
+// Admission: 2023, Current Date: June 2025
+// - Years since admission: 2025 - 2023 = 2
+// - Current month: 5 (June) < 7, so subtract 1 → yearsSince = 1
+// - Calculated year: 1 + 1 = 2 (2nd year) ✅
+//
+// Admission: 2021, Current Date: Oct 2025
+// - Years since admission: 2025 - 2021 = 4
+// - Current month: 9 >= 7
+// - Calculated year: 4 + 1 = 5 (Graduated/Alumni) ✅

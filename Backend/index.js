@@ -37,13 +37,14 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date() });
 });
 
-app.use(notFoundHandler);
-app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
 app.use("/api/auth", auth);
 app.use("/api/profile", profileRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`SERVER RUNNING SUCCESSFULLY on port ${PORT}`);

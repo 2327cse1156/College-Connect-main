@@ -7,7 +7,11 @@ export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password -__v");
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.status(200).json({ success: true, user });
+    res.status(200).json({ success: true, user:{
+      ...user.toObject(),
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+    } });
   } catch (error) {
     res.status(500).json({
       success: false,

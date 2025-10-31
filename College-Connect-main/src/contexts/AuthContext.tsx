@@ -29,6 +29,7 @@ interface User {
   rejectionReason?: string;
   isAdmin?: boolean;
   roleLastUpdated?: string;
+  personalEmail?: string;
 }
 
 interface AuthContextType {
@@ -39,7 +40,11 @@ interface AuthContextType {
     email: string,
     password: string,
     role: string,
-    studentIdFile?: File | null
+    verificationFile?: File | null,
+    admissionYear?: string,
+    graduationYear?: string,
+    passoutYear?: string,
+    personalEmail?: string
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
@@ -76,9 +81,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     email: string,
     password: string,
     role: string,
-    studentIdFile?: File | null,
-    admissionYear?: number,
-    graduationYear?: number
+    verificationFile?: File | null,
+    admissionYear?: string,
+    graduationYear?: string,
+    passoutYear?: string,
+    personalEmail?: string
   ) => {
     setLoading(true);
     try {
@@ -87,12 +94,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       formData.append("email", email);
       formData.append("password", password);
       formData.append("role", role);
-      if (admissionYear !== undefined && admissionYear !== null)
-        formData.append("admissionYear", String(admissionYear));
-      if (graduationYear !== undefined && graduationYear !== null)
-        formData.append("graduationYear", String(graduationYear));
-      if (studentIdFile) {
-        formData.append("studentId", studentIdFile);
+      if (role === "student") {
+        if (admissionYear) formData.append("admissionYear", admissionYear);
+        if (graduationYear) formData.append("graduationYear", graduationYear);
+        if (verificationFile) formData.append("studentId", verificationFile);
+      }
+      if (role === "alumni") {
+        if (passoutYear) formData.append("passoutYear", passoutYear);
+        if (personalEmail) formData.append("personalEmail", personalEmail);
+        if (verificationFile) formData.append("studentId", verificationFile);
       }
 
       const res = await axios.post(`${API_URL}/signup`, formData, {
@@ -100,14 +110,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (
-        res.data.user.role === "student" &&
-        res.data.user.verificationStatus === "pending"
-      ) {
-        toast.success(
-          "✅ Account created! Please wait for admin verification.",
-          { duration: 5000 }
-        );
+      if (res.data.user.verificationStatus === "pending") {
+        const message =
+          role === "alumni"
+            ? "✅ Alumni account created! Please wait for admin verification."
+            : "✅ Account created! Please wait for admin verification.";
+        toast.success(message, { duration: 5000 });
         setCurrentUser(null);
         return;
       }
