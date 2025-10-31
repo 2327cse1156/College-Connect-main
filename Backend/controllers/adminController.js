@@ -15,7 +15,6 @@ export const getPendingUsers = async (req, res) => {
   try {
     const pendingUsers = await User.find({
       verificationStatus: "pending",
-      role: "student",
     })
       .select("-password")
       .sort({ createdAt: -1 });
@@ -55,40 +54,75 @@ export const approveUser = async (req, res) => {
     user.verifiedBy = adminId;
     user.verificationDate = new Date();
     await user.save();
+
+    const isAlumni = user.role === "alumni";
     try {
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: user.email,
-        subject: "🎉 Your CollegeConnect Account is Approved!",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #4F46E5;">Congratulations, ${user.name}! 🎓</h2>
-            <p>Great news! Your CollegeConnect account has been verified and approved.</p>
-            
-            <div style="background: #10B981; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
-              <h3 style="margin: 0;">✅ Account Status: APPROVED</h3>
+        subject: isAlumni
+          ? "🎉 Your Alumni Account is Approved - CollegeConnect"
+          : "🎉 Your CollegeConnect Account is Approved!",
+        html: isAlumni
+          ? `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #10B981;">Welcome Back, ${user.name}! 🎓</h2>
+              <p>Great news! Your alumni account has been verified and approved.</p>
+              
+              <div style="background: #10B981; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                <h3 style="margin: 0;">✅ Account Status: APPROVED</h3>
+              </div>
+              
+              <p>You can now:</p>
+              <ul>
+                <li>Login to your account</li>
+                <li>Mentor current students</li>
+                <li>Share career opportunities</li>
+                <li>Connect with fellow alumni</li>
+                <li>Participate in alumni events</li>
+              </ul>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="http://localhost:5173/login" 
+                   style="background: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                  Login Now
+                </a>
+              </div>
+               <p style="color: #6B7280; font-size: 14px;">
+                Welcome back to the CollegeConnect community!<br/>
+                - CollegeConnect Team
+              </p>
             </div>
-            
-            <p>You can now:</p>
-            <ul>
-              <li>Login to your account</li>
-              <li>Find hackathon teammates</li>
-              <li>Connect with seniors and alumni</li>
-              <li>Share and access resources</li>
-            </ul>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="http://localhost:5173/login" 
-                 style="background: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">
-                Login Now
-              </a>
+          `
+          : `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #4F46E5;">Congratulations, ${user.name}! 🎓</h2>
+              <p>Great news! Your CollegeConnect account has been verified and approved.</p>
+              
+              <div style="background: #10B981; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                <h3 style="margin: 0;">✅ Account Status: APPROVED</h3>
+              </div>
+              
+              <p>You can now:</p>
+              <ul>
+                <li>Login to your account</li>
+                <li>Find hackathon teammates</li>
+                <li>Connect with seniors and alumni</li>
+                <li>Share and access resources</li>
+              </ul>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="http://localhost:5173/login" 
+                   style="background: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                  Login Now
+                </a>
+              </div>
+               <p style="color: #6B7280; font-size: 14px;">
+                Welcome to the CollegeConnect community!<br/>
+                - CollegeConnect Team
+              </p>
             </div>
-             <p style="color: #6B7280; font-size: 14px;">
-              Welcome to the CollegeConnect community!<br/>
-              - CollegeConnect Team
-            </p>
-          </div>
-        `,
+          `,
       });
     } catch (error) {
       console.error("Email send error:", error);
@@ -118,21 +152,28 @@ export const rejectUser = async (req, res) => {
     const { userId } = req.params;
     const { reason } = req.body;
     const adminId = req.user.id;
+
     if (!reason || reason.trim() === "") {
       return res.status(400).json({ error: "Rejection reason is required" });
     }
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
+
     if (user.verificationStatus === "approved") {
       return res.status(400).json({ error: "Cannot reject an approved user" });
     }
+
     user.verificationStatus = "rejected";
     user.rejectionReason = reason;
     user.verifiedBy = adminId;
     user.verificationDate = new Date();
     await user.save();
+
+    const isAlumni = user.role === "alumni";
+
     try {
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
@@ -142,7 +183,9 @@ export const rejectUser = async (req, res) => {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #DC2626;">Account Verification Status</h2>
             <p>Hello ${user.name},</p>
-            <p>We've reviewed your CollegeConnect account application.</p>
+            <p>We've reviewed your CollegeConnect ${
+              isAlumni ? "alumni" : "student"
+            } account application.</p>
             
             <div style="background: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #DC2626; margin: 0 0 10px 0;">Account Not Approved</h3>
@@ -155,6 +198,16 @@ export const rejectUser = async (req, res) => {
               <li>Provide additional verification documents if needed</li>
               <li>Contact our support team</li>
             </ul>
+            
+            ${
+              isAlumni
+                ? `
+              <p><strong>For Alumni:</strong> Please ensure your degree certificate or alumni ID is clear and valid.</p>
+            `
+                : `
+              <p><strong>For Students:</strong> Please ensure your student ID card is clear and shows current enrollment status.</p>
+            `
+            }
             
             <p style="color: #6B7280; font-size: 14px;">
               Thank you for your understanding.<br/>
@@ -174,6 +227,7 @@ export const rejectUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         verificationStatus: user.verificationStatus,
         rejectionReason: user.rejectionReason,
       },
@@ -204,6 +258,12 @@ export const getAdminStats = async (req, res) => {
     const recentRegistrations = await User.countDocuments({
       createdAt: { $gte: sevenDaysAgo },
     });
+
+    // ✅ Additional stats for alumni
+    const alumniCount = await User.countDocuments({ role: "alumni" });
+    const studentCount = await User.countDocuments({ role: "student" });
+    const seniorCount = await User.countDocuments({ role: "senior" });
+
     res.status(200).json({
       success: true,
       stats: {
@@ -212,6 +272,12 @@ export const getAdminStats = async (req, res) => {
         approvedCount,
         rejectedCount,
         recentRegistrations,
+        // ✅ NEW: Role breakdown
+        roleBreakdown: {
+          students: studentCount,
+          seniors: seniorCount,
+          alumni: alumniCount,
+        },
       },
     });
   } catch (error) {
@@ -228,6 +294,7 @@ export const getAllUsers = async (req, res) => {
   try {
     const { status, role, search } = req.query;
     let query = {};
+
     if (status) {
       query.verificationStatus = status;
     }
@@ -240,19 +307,23 @@ export const getAllUsers = async (req, res) => {
         { email: { $regex: search, $options: "i" } },
       ];
     }
+
     const users = await User.find(query)
       .select("-password")
       .sort({ createdAt: -1 })
       .limit(100);
+
     res.status(200).json({
       success: true,
       count: users.length,
       users,
     });
-  } catch (error) {console.error("Get all users error:", error);
+  } catch (error) {
+    console.error("Get all users error:", error);
     res.status(500).json({
       success: false,
       error: "Failed to fetch users",
       details: error.message,
-    });}
+    });
+  }
 };

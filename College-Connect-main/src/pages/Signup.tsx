@@ -62,21 +62,30 @@ const useAuth = (): UseAuth => ({
 });
 
 const Signup = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "student", // ✅ Can be 'student' or 'alumni'
-    admissionYear: new Date().getFullYear().toString(),
-    graduationYear: "",
-    passoutYear: "", // ✅ For alumni
-    personalEmail: "", // ✅ For alumni
+  const [formData, setFormData] = useState<{
+      name: string;
+      email: string;
+      password: string;
+      role: "student" | "alumni"; // Explicitly typed
+      admissionYear: string;
+      graduationYear: string;
+      passoutYear: string; // ✅ For alumni
+      personalEmail: string; // ✅ For alumni
+  }>({
+      name: "",
+      email: "",
+      password: "",
+      role: "student", // ✅ Can be 'student' or 'alumni'
+      admissionYear: new Date().getFullYear().toString(),
+      graduationYear: "",
+      passoutYear: "", // ✅ For alumni
+      personalEmail: "", // ✅ For alumni
   });
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [verificationFile, setVerificationFile] = useState(null);
+  const [verificationFile, setVerificationFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState("");
   const [fileError, setFileError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(false);
@@ -141,21 +150,33 @@ const Signup = () => {
     }
   };
 
-  const handlePasswordChange = (e) => {
-    const password = e.target.value;
+  interface PasswordChangeEvent {
+    target: {
+      value: string;
+    };
+  }
+
+  const handlePasswordChange = (e: PasswordChangeEvent): void => {
+    const password: string = e.target.value;
     setFormData({ ...formData, password });
     setPasswordError(
       password.length < 6 ? "Password must be at least 6 characters" : ""
     );
   };
 
-  const handleFileChange = (e) => {
+  interface FileChangeEvent {
+    target: {
+      files: FileList | null;
+    };
+  }
+
+  const handleFileChange = (e: FileChangeEvent): void => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadProgress(true);
     
-    const allowedTypes = ["image/jpeg", "image/png", "application/pdf", "image/jpg"];
+    const allowedTypes: string[] = ["image/jpeg", "image/png", "application/pdf", "image/jpg"];
     
     if (!allowedTypes.includes(file.type)) {
       setFileError("Only JPG, PNG, and PDF files are allowed");
@@ -164,7 +185,7 @@ const Signup = () => {
       return;
     }
     
-    const maxSize = 5 * 1024 * 1024;
+    const maxSize: number = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       setFileError("File size must be less than 5MB");
       setVerificationFile(null);
@@ -195,10 +216,14 @@ const Signup = () => {
     setFilePreview("");
     setFileError("");
     const fileInput = document.querySelector('input[type="file"]');
-    if (fileInput) fileInput.value = "";
+    if (fileInput) (fileInput as HTMLInputElement).value = "";
   };
 
-  const handleRoleChange = (role) => {
+  interface RoleChangeEvent {
+    role: "student" | "alumni";
+  }
+
+  const handleRoleChange = (role: RoleChangeEvent["role"]) => {
     setFormData({
       ...formData,
       role,
@@ -210,7 +235,9 @@ const Signup = () => {
     setEmailError("");
   };
 
-  const handleSubmit = async (e) => {
+  interface HandleSubmitEvent extends React.FormEvent<HTMLFormElement> {}
+
+  const handleSubmit = async (e: HandleSubmitEvent) => {
     e.preventDefault();
 
     if (emailError || passwordError || fileError) {
