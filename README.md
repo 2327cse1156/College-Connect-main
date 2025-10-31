@@ -214,3 +214,11 @@ This project is licensed under the **MIT License**.
 ## ⭐ Support
 
 If you like this project, consider giving it a **star on GitHub** to support development!
+
+---
+
+## 📬 Contact & Queries
+
+For any queries, feedback, or collaboration opportunities, feel free to reach out:  
+
+**Email:** [collegeconnect2k24@gmail.com](mailto:collegeconnect2k24@gmail.com)  
