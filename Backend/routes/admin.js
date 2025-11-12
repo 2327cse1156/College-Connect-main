@@ -1,7 +1,7 @@
 import express from "express";
-import { authMiddleware}  from "../middlewares/auth.js"
+import { authMiddleware, verifiedOnly}  from "../middlewares/auth.js"
 import { adminMiddleware } from "../middlewares/adminMiddleware.js";
-import {approveUser, deleteUser, getAdminStats, getAllUsers, getPendingUsers, rejectUser} from "../controllers/adminController.js"
+import {approveUser, deleteUser, getAdminStats, getAllUsers, getAnalytics, getPendingUsers, rejectUser} from "../controllers/adminController.js"
 const router = express.Router();
 
 router.use(authMiddleware);
@@ -13,5 +13,5 @@ router.post("/reject/:userId",rejectUser);
 router.get("/stats",getAdminStats);
 router.get("/users",getAllUsers);
 router.delete("/users/:userId",deleteUser);
-
+router.get("/analytics",getAnalytics);
 export default router;

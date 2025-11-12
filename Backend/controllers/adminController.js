@@ -1,6 +1,8 @@
 import User from "../models/User.js";
 import sgMail from "@sendgrid/mail"; // ⭐ SendGrid import
 import dotenv from "dotenv";
+import Hackathon from "../models/Hackathon.js";
+import Resources from "../models/Resources.js";
 dotenv.config();
 
 // ⭐ SendGrid Configuration
@@ -367,6 +369,212 @@ export const deleteUser = async (req, res) => {
     console.error("Delete user error:", error);
     res.status(500).json({
       error: "Failed to delete user",
+    });
+  }
+};
+
+export const getAnalytics = async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.setDate(daysAgo.getDate() - parseInt(days)));
+
+    // user growth
+    const userGrowth = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: daysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          date: "$_id",
+          count: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    // Department Disturbution
+    const departmentStats = await User.aggregate([
+      {
+        $match: {
+          branch: { $exists: true, $ne: "" },
+        },
+      },
+      {
+        $group: { _id: "$branch", count: { $sum: 1 } },
+      },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+      {
+        $project: {
+          department: "$_id",
+          count: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    // hackathon participation
+    const hackathonParticipation = await Hackathon.aggregate([
+      {
+        $match: {
+          startDate: {
+            $gte: new Date(new Date().setMonth(new Date().getMonth() - 4)),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: "$startDate" },
+          participants: { $sum: { $size: "$registeredUsers" } },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          month: {
+            $arrayElemAt: [
+              [
+                "",
+                "Jan",
+                "Feb",
+                "Mar",
+                "Apr",
+                "May",
+                "Jun",
+                "Jul",
+                "Aug",
+                "Sep",
+                "Oct",
+                "Nov",
+                "Dec",
+              ],
+              "$_id",
+            ],
+          },
+          participants: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    // Resource downloads
+    const resourceDownloads = await Resources.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: daysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          downloads: { $sum: "$downloads" },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          date: "$_id",
+          downloads: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    // Peak activity hours
+    const peakHours = await User.aggregate([
+      {
+        $project: {
+          hour: { $hour: "$createdAt" },
+        },
+      },
+      {
+        $group: {
+          _id: "$hour",
+          activity: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          hour: "$_id",
+          activity: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    const allHours = Array.from({ length: 24 }, (_, i) => ({
+      hour: i,
+      activity: peakHours.find((h) => h.hour === i)?.activity || 0,
+    }));
+
+    // overall stats
+    const [
+      totalUsers,
+      totalResources,
+      totalHackathons,
+      totalDownloads,
+      todayRegistrations,
+    ] = await Promise.all([
+      User.countDocuments(),
+      Resources.countDocuments(),
+      Hackathon.countDocuments(),
+      Resources.aggregate([
+        { $group: { _id: null, total: { $sum: "$downloads" } } },
+      ]),
+      User.countDocuments({
+        createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+      }),
+    ]);
+
+    // weekly growth
+    const lastWeek = new Date();
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 14);
+
+    const [thisWeekUsers, lastWeekUsers] = await Promise.all([
+      User.countDocuments({ createdAt: { $gte: lastWeek } }),
+      User.countDocuments({ createdAt: { $gte: weekAgo, $lt: lastWeek } }),
+    ]);
+
+    const weeklyGrowth =
+      lastWeekUsers > 0
+        ? (((thisWeekUsers - lastWeekUsers) / lastWeekUsers) * 100).toFixed(1)
+        : 0;
+
+    res.status(200).json({
+      success: true,
+      analytics: {
+        userGrowth,
+        departmentStats,
+        hackathonParticipation,
+        resourceDownloads,
+        peakHours: allHours,
+        totalUsers,
+        totalResources,
+        totalHackathons,
+        totalDownloads: totalDownloads[0]?.total || 0,
+        todayRegistrations,
+        weeklyGrowth: parseFloat(weeklyGrowth),
+      },
+    });
+  } catch (error) {
+    console.error("Analytics error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch analytics",
+      details: error.message,
     });
   }
 };

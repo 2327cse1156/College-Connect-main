@@ -1,18 +1,18 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { 
-  Users, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Eye, 
-  X, 
+import {
+  Users,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Eye,
+  X,
   Search,
   Filter,
   Download,
   TrendingUp,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 
 interface User {
@@ -52,22 +52,33 @@ interface StatCardProps {
   };
 }
 
-const StatCard: React.FC<StatCardProps> = ({ icon, title, value, color, bgColor, trend }) => (
-  <div className={`${bgColor} rounded-xl shadow-lg p-6 relative overflow-hidden transition-transform hover:-translate-y-1`}>
+const StatCard: React.FC<StatCardProps> = ({
+  icon,
+  title,
+  value,
+  color,
+  bgColor,
+  trend,
+}) => (
+  <div
+    className={`${bgColor} rounded-xl shadow-lg p-6 relative overflow-hidden transition-transform hover:-translate-y-1`}
+  >
     <div className="absolute top-0 right-0 opacity-10">
       <div className={`${color} w-32 h-32 rounded-full -mr-8 -mt-8`}></div>
     </div>
 
     <div className="relative z-10">
       <div className="flex items-center justify-between mb-4">
-        <div className={`${color} text-white p-3 rounded-lg`}>
-          {icon}
-        </div>
+        <div className={`${color} text-white p-3 rounded-lg`}>{icon}</div>
         {trend && (
-          <div className={`flex items-center gap-1 text-sm font-medium ${
-            trend.isPositive ? 'text-green-600' : 'text-red-600'
-          }`}>
-            <TrendingUp className={`h-4 w-4 ${!trend.isPositive && 'rotate-180'}`} />
+          <div
+            className={`flex items-center gap-1 text-sm font-medium ${
+              trend.isPositive ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            <TrendingUp
+              className={`h-4 w-4 ${!trend.isPositive && "rotate-180"}`}
+            />
             {trend.value}%
           </div>
         )}
@@ -92,6 +103,8 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCollege, setFilterCollege] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showAnalytics, setShowAnalytics] = useState(true);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -116,9 +129,10 @@ export default function AdminDashboard() {
       setStats(statsRes.data.stats || null);
     } catch (error: any) {
       console.error("Fetch error:", error);
-      const errorMsg = error.response?.data?.error || error.message || "Failed to load data";
+      const errorMsg =
+        error.response?.data?.error || error.message || "Failed to load data";
       alert(`❌ Error: ${errorMsg}`);
-      
+
       // Set empty data on error
       setPendingUsers([]);
       setFilteredUsers([]);
@@ -127,7 +141,7 @@ export default function AdminDashboard() {
         pendingCount: 0,
         approvedCount: 0,
         rejectedCount: 0,
-        recentRegistrations: 0
+        recentRegistrations: 0,
       });
     } finally {
       setLoading(false);
@@ -156,7 +170,7 @@ export default function AdminDashboard() {
 
   const handleApprove = async (userId: string) => {
     if (!window.confirm("Are you sure you want to approve this user?")) return;
-    
+
     setActionLoading(true);
     try {
       await axios.post(
@@ -170,7 +184,10 @@ export default function AdminDashboard() {
       fetchData();
     } catch (error: any) {
       console.error("Approve error:", error);
-      const errorMsg = error.response?.data?.error || error.message || "Failed to approve user";
+      const errorMsg =
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to approve user";
       alert(`❌ Error: ${errorMsg}`);
     } finally {
       setActionLoading(false);
@@ -199,7 +216,8 @@ export default function AdminDashboard() {
       fetchData();
     } catch (error: any) {
       console.error("Reject error:", error);
-      const errorMsg = error.response?.data?.error || error.message || "Failed to reject user";
+      const errorMsg =
+        error.response?.data?.error || error.message || "Failed to reject user";
       alert(`❌ Error: ${errorMsg}`);
     } finally {
       setActionLoading(false);
@@ -218,8 +236,17 @@ export default function AdminDashboard() {
       return;
     }
 
-    const headers = ["Name", "Email", "Role", "College", "Course", "Branch", "Year", "Registered Date"];
-    const rows = pendingUsers.map(user => [
+    const headers = [
+      "Name",
+      "Email",
+      "Role",
+      "College",
+      "Course",
+      "Branch",
+      "Year",
+      "Registered Date",
+    ];
+    const rows = pendingUsers.map((user) => [
       user.name,
       user.email,
       user.role || "N/A",
@@ -227,19 +254,19 @@ export default function AdminDashboard() {
       user.course || "N/A",
       user.branch || "N/A",
       user.currentYear || "N/A",
-      new Date(user.createdAt).toLocaleDateString()
+      new Date(user.createdAt).toLocaleDateString(),
     ]);
 
     const csvContent = [
       headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `pending_users_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `pending_users_${new Date().toISOString().split("T")[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -249,8 +276,8 @@ export default function AdminDashboard() {
 
   const getUniqueColleges = () => {
     const colleges = pendingUsers
-      .map(user => user.college)
-      .filter(college => college && college.trim() !== "");
+      .map((user) => user.college)
+      .filter((college) => college && college.trim() !== "");
     return [...new Set(colleges)];
   };
 
@@ -258,7 +285,9 @@ export default function AdminDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
-        <p className="text-gray-600 animate-pulse font-medium">Loading dashboard...</p>
+        <p className="text-gray-600 animate-pulse font-medium">
+          Loading dashboard...
+        </p>
       </div>
     );
   }
@@ -384,7 +413,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <select
-                title="college filter"
+                  title="college filter"
                   value={filterCollege}
                   onChange={(e) => setFilterCollege(e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -482,7 +511,9 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-600">{user.email}</span>
+                          <span className="text-sm text-gray-600">
+                            {user.email}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-900">
@@ -491,8 +522,12 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm">
-                            <div className="text-gray-900">{user.course || "N/A"}</div>
-                            <div className="text-gray-500">{user.branch || "N/A"}</div>
+                            <div className="text-gray-900">
+                              {user.course || "N/A"}
+                            </div>
+                            <div className="text-gray-500">
+                              {user.branch || "N/A"}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -530,7 +565,9 @@ export default function AdminDashboard() {
                           </span>
                         </div>
                         <div>
-                          <h3 className="font-bold text-gray-900">{user.name}</h3>
+                          <h3 className="font-bold text-gray-900">
+                            {user.name}
+                          </h3>
                           <p className="text-sm text-gray-500">{user.email}</p>
                         </div>
                       </div>
@@ -617,21 +654,23 @@ export default function AdminDashboard() {
                     { label: "College", value: selectedUser.college || "N/A" },
                     { label: "Course", value: selectedUser.course || "N/A" },
                     { label: "Branch", value: selectedUser.branch || "N/A" },
-                    { 
-                      label: "Admission Year", 
-                      value: selectedUser.admissionYear || "N/A" 
+                    {
+                      label: "Admission Year",
+                      value: selectedUser.admissionYear || "N/A",
                     },
-                    { 
-                      label: "Current Year", 
-                      value: selectedUser.currentYear || "N/A" 
+                    {
+                      label: "Current Year",
+                      value: selectedUser.currentYear || "N/A",
                     },
-                    { 
-                      label: "Expected Graduation", 
-                      value: selectedUser.graduationYear || "N/A" 
+                    {
+                      label: "Expected Graduation",
+                      value: selectedUser.graduationYear || "N/A",
                     },
-                    { 
-                      label: "Registration Date", 
-                      value: new Date(selectedUser.createdAt).toLocaleDateString() 
+                    {
+                      label: "Registration Date",
+                      value: new Date(
+                        selectedUser.createdAt
+                      ).toLocaleDateString(),
                     },
                   ].map((item) => (
                     <div key={item.label}>
@@ -656,11 +695,17 @@ export default function AdminDashboard() {
                   selectedUser.studentIdUrl.toLowerCase().endsWith(".pdf") ? (
                     <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-gray-50">
                       <div className="text-red-600 mb-4">
-                        <svg className="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                        <svg
+                          className="w-16 h-16 mx-auto"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
                         </svg>
                       </div>
-                      <p className="text-gray-700 font-medium mb-4">PDF Document</p>
+                      <p className="text-gray-700 font-medium mb-4">
+                        PDF Document
+                      </p>
                       <a
                         href={selectedUser.studentIdUrl}
                         target="_blank"
