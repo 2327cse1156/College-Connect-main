@@ -154,7 +154,7 @@ const AdminLayout = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1 min-h-0">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = isActivePath(item.path);
@@ -173,7 +173,7 @@ const AdminLayout = () => {
                 `}
               >
                 <Icon className={`h-5 w-5 ${isActive ? "text-indigo-600" : "text-gray-500"}`} />
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-sm">{item.label}</p>
                   <p className="text-xs text-gray-500">{item.description}</p>
                 </div>
