@@ -65,12 +65,12 @@ const AdminLayout = () => {
       label: "Resources",
       description: "Manage uploads",
     },
-    {
-      path: "/admin/role-transition",
-      icon: TrendingUp,
-      label: "Role Upgrade",
-      description: "Student transitions",
-    },
+    // {
+    //   path: "/admin/role-transition",
+    //   icon: TrendingUp,
+    //   label: "Role Upgrade",
+    //   description: "Student transitions",
+    // },
   ];
 
   const isActivePath = (path: string) => {
