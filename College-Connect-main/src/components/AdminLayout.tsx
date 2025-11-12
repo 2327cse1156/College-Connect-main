@@ -11,6 +11,8 @@ import {
   X,
   TrendingUp,
   TrendingUpIcon,
+  UserCog,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -43,7 +45,7 @@ const AdminLayout = () => {
     },
     {
       path: "/admin/analytics",
-      icon: TrendingUp,
+      icon: BarChart3,
       label: "Analytics",
       description: "Platform insights",
     },
@@ -65,12 +67,12 @@ const AdminLayout = () => {
       label: "Resources",
       description: "Manage uploads",
     },
-    // {
-    //   path: "/admin/role-transition",
-    //   icon: TrendingUp,
-    //   label: "Role Upgrade",
-    //   description: "Student transitions",
-    // },
+    {
+      path: "/admin/role-transition",
+      icon: UserCog,
+      label: "Role Upgrade",
+      description: "Student transitions",
+    },
   ];
 
   const isActivePath = (path: string) => {
