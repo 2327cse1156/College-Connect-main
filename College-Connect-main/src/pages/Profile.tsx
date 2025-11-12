@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import axios from "axios";
 import toast from "react-hot-toast";
 
 import ProfileHeader from "../components/ProfileHeader";
@@ -30,6 +32,7 @@ export interface ProfileForm {
 }
 
 const Profile = () => {
+  const { userId } = useParams(); // Get userId from URL
   const { currentUser, updateProfile, getProfile } = useAuth();
   const [form, setForm] = useState<ProfileForm>({
     name: "",
@@ -51,47 +54,79 @@ const Profile = () => {
     activities: [],
   });
 
+  const [profileUser, setProfileUser] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fetchingProfile, setFetchingProfile] = useState(true);
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  // Check if viewing own profile or someone else's
+  const isOwnProfile = !userId || userId === currentUser?._id;
 
   useEffect(() => {
     const loadProfile = async () => {
-      console.log("Loading profile...");
+      setFetchingProfile(true);
+      try {
+        let profileData;
 
-      const freshProfile = await getProfile();
+        if (isOwnProfile) {
+          // Load own profile
+          console.log("Loading own profile...");
+          profileData = await getProfile();
+          setProfileUser(currentUser);
+        } else {
+          // Load another user's profile
+          console.log("Loading user profile:", userId);
+          const res = await axios.get(`${API_URL}/users/${userId}`, {
+            withCredentials: true,
+          });
+          profileData = res.data.user;
+          setProfileUser(profileData);
+        }
 
-      console.log("Fresh profile fetched:", freshProfile);
+        console.log("Profile data fetched:", profileData);
 
-      if (freshProfile) {
-        // Agar currentUser already hai to directly form populate karo
-        setForm({
-          name: freshProfile.name || "",
-          bio: freshProfile.bio || "",
-          location: freshProfile.location || "",
-          skills: Array.isArray(freshProfile.skills) ? freshProfile.skills : [],
-          avatarFile: null,
-          avatar: freshProfile.avatar || "",
-          resumeFile: null,
-          resumeUrl: freshProfile.resumeUrl || "",
-          yearOfAdmission: freshProfile.admissionYear?.toString() || "",
-          yearOfGraduation: freshProfile.graduationYear?.toString() || "",
-          course: freshProfile.course || "",
-          branch: freshProfile.branch || "",
-          college: freshProfile.college || "",
-          website: freshProfile.website || "",
-          linkedin: freshProfile.linkedin || "",
-          github: freshProfile.github || "",
-          activities: Array.isArray(freshProfile.activities)
-            ? freshProfile.activities
-            : [],
-        });
+        if (profileData) {
+          setForm({
+            name: profileData.name || "",
+            bio: profileData.bio || "",
+            location: profileData.location || "",
+            skills: Array.isArray(profileData.skills) ? profileData.skills : [],
+            avatarFile: null,
+            avatar: profileData.avatar || "",
+            resumeFile: null,
+            resumeUrl: profileData.resumeUrl || "",
+            yearOfAdmission: profileData.admissionYear?.toString() || "",
+            yearOfGraduation: profileData.graduationYear?.toString() || "",
+            course: profileData.course || "",
+            branch: profileData.branch || "",
+            college: profileData.college || "",
+            website: profileData.website || "",
+            linkedin: profileData.linkedin || "",
+            github: profileData.github || "",
+            activities: Array.isArray(profileData.activities)
+              ? profileData.activities
+              : [],
+          });
+        }
+      } catch (error: any) {
+        console.error("Error loading profile:", error);
+        toast.error("Failed to load profile");
+      } finally {
+        setFetchingProfile(false);
       }
     };
 
     loadProfile();
-  }, []);
+  }, [userId, currentUser?._id]);
 
   const handleSubmit = async () => {
+    if (!isOwnProfile) {
+      toast.error("You can only edit your own profile");
+      return;
+    }
+
     setLoading(true);
     try {
       const formData = new FormData();
@@ -144,7 +179,7 @@ const Profile = () => {
     }
   };
 
-  if (!currentUser)
+  if (fetchingProfile || !profileUser) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -153,6 +188,7 @@ const Profile = () => {
         </div>
       </div>
     );
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
@@ -160,30 +196,47 @@ const Profile = () => {
       <ProfileHeader
         form={form}
         setForm={setForm}
-        isEditing={isEditing}
+        isEditing={isEditing && isOwnProfile}
         setIsEditing={setIsEditing}
         loading={loading}
         handleSubmit={handleSubmit}
-        currentUser={currentUser}
+        currentUser={profileUser}
+        isOwnProfile={isOwnProfile}
       />
 
       {/* Bio + Extra Info */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <ProfileBio form={form} setForm={setForm} isEditing={isEditing} />
-          <ProfileSkills form={form} setForm={setForm} isEditing={isEditing} />
-          <ProfileResume form={form} setForm={setForm} isEditing={isEditing} />
+          <ProfileBio 
+            form={form} 
+            setForm={setForm} 
+            isEditing={isEditing && isOwnProfile} 
+          />
+          <ProfileSkills 
+            form={form} 
+            setForm={setForm} 
+            isEditing={isEditing && isOwnProfile} 
+          />
+          <ProfileResume 
+            form={form} 
+            setForm={setForm} 
+            isEditing={isEditing && isOwnProfile} 
+          />
         </div>
 
         <ProfileExtraFields
           form={form}
           setForm={setForm}
-          isEditing={isEditing}
+          isEditing={isEditing && isOwnProfile}
         />
       </div>
 
       {/* Recent Activity */}
-      <ProfileActivity form={form} setForm={setForm} isEditing={isEditing} />
+      <ProfileActivity 
+        form={form} 
+        setForm={setForm} 
+        isEditing={isEditing && isOwnProfile} 
+      />
     </div>
   );
 };

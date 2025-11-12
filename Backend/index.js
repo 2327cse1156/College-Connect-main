@@ -15,7 +15,7 @@ import { errorHandler, notFoundHandler } from "./middlewares/errorHandler.js";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import chatRoutes from "./routes/chat.js";
-
+import userRoutes from "./routes/userRoutes.js";
 dotenv.config();
 connectDB();
 
@@ -86,6 +86,7 @@ app.use("/api/team-builder", teamBuilderRoutes);
 app.use("/api/resources", resourceRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/users",userRoutes);
 
 app.get("/", (req, res) => {
   res.json({

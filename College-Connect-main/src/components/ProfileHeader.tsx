@@ -9,6 +9,7 @@ interface ProfileHeaderProps {
   loading: boolean;
   handleSubmit: () => Promise<void>;
   currentUser: any;
+  isOwnProfile?:boolean;
 }
 
 const ProfileHeader = ({
@@ -19,6 +20,7 @@ const ProfileHeader = ({
   loading,
   handleSubmit,
   currentUser,
+  isOwnProfile=true,
 }: ProfileHeaderProps) => {
   const formatMemberSince = () => {
     const dateString = currentUser?.createdAt || currentUser?.updatedAt;
@@ -199,7 +201,7 @@ const ProfileHeader = ({
 
       {/* Action Buttons */}
       <div className="flex gap-2 mt-4 md:mt-0">
-        {isEditing ? (
+        {isOwnProfile ? (isEditing ? (
           <>
             <button
               onClick={handleSubmit}
@@ -228,7 +230,9 @@ const ProfileHeader = ({
             <Edit3 className="w-4 h-4" />
             Edit Profile
           </button>
-        )}
+        )):(<div className="px-5 py-2 bg-gray-100 text-gray-600 rounded-lg font-semibold">
+          View Only
+        </div>)}
       </div>
     </div>
   );

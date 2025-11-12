@@ -65,10 +65,18 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            
+
             {/* Protected User Routes */}
             <Route
               path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/:userId" // 🆕 ADD THIS - Dynamic route
               element={
                 <ProtectedRoute>
                   <Profile />
@@ -104,10 +112,10 @@ function App() {
           >
             <Route index element={<AdminDashboard />} />
             <Route path="hackathons" element={<ManageHackathons />} />
-            <Route path="users" element={<AllUsers />} /> 
+            <Route path="users" element={<AllUsers />} />
           </Route>
         </Routes>
-        
+
         <Toaster position="top-right" />
       </SocketProvider>
     </AuthProvider>
