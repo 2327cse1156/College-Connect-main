@@ -75,6 +75,9 @@ const AdminLayout = () => {
     },
   ];
 
+  console.log(menuItems);
+  
+
   const isActivePath = (path: string) => {
     if (path === "/admin") {
       return location.pathname === "/admin";
