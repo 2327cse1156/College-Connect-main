@@ -15,7 +15,7 @@ const sendEmail = async (to, subject, html) => {
       subject,
       html,
     };
-    
+
     await sgMail.send(msg);
     console.log(`✅ Email sent to ${to}`);
     return { success: true };
@@ -64,16 +64,16 @@ export const approveUser = async (req, res) => {
         error: "User already approved",
       });
     }
-    
+
     user.verificationStatus = "approved";
     user.verifiedBy = adminId;
     user.verificationDate = new Date();
     await user.save();
 
     const isAlumni = user.role === "alumni";
-    
+
     // ⭐ Get frontend URL from env
-    const loginUrl = process.env.FRONTEND_URL 
+    const loginUrl = process.env.FRONTEND_URL
       ? `${process.env.FRONTEND_URL}/login`
       : "https://college-connect-main.vercel.app/login";
 
@@ -230,7 +230,11 @@ export const rejectUser = async (req, res) => {
     `;
 
     // ⭐ Send email via SendGrid
-    sendEmail(user.email, "CollegeConnect Account Verification Update", emailBody);
+    sendEmail(
+      user.email,
+      "CollegeConnect Account Verification Update",
+      emailBody
+    );
 
     res.status(200).json({
       success: true,
@@ -334,6 +338,35 @@ export const getAllUsers = async (req, res) => {
       success: false,
       error: "Failed to fetch users",
       details: error.message,
+    });
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({
+        error: "Cannot delete your own account",
+      });
+    }
+
+    await User.findByIdAndDelete(userId);
+
+    res.json({
+      sucess: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete user error:", error);
+    res.status(500).json({
+      error: "Failed to delete user",
     });
   }
 };
