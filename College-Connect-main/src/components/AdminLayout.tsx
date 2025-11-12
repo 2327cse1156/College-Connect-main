@@ -9,7 +9,8 @@ import {
   LogOut,
   Menu,
   X,
-  TrendingUp
+  TrendingUp,
+  TrendingUpIcon
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,6 +40,12 @@ const AdminLayout = () => {
       icon: LayoutDashboard,
       label: "Dashboard",
       description: "User verifications"
+    },
+    {
+      path:"/admin/analytics",
+      icon:TrendingUp,
+      label:"Analytics",
+      description:"Platform insights"
     },
     {
       path: "/admin/hackathons",

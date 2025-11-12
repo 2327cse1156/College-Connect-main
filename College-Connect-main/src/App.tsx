@@ -34,6 +34,7 @@ import ChatWindow from "./pages/ChatWindow";
 import AdminDashboard from "./components/AdminDashboard";
 import ManageHackathons from "./pages/ManageHackathons";
 import AllUsers from "./pages/AllUsers";
+import Analytics from "./pages/Analytics";
 
 // MainLayout Component (Inline - no separate file needed)
 const MainLayout = () => {
@@ -113,6 +114,7 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="hackathons" element={<ManageHackathons />} />
             <Route path="users" element={<AllUsers />} />
+            <Route path="analytics" element={<Analytics/>}/>
           </Route>
         </Routes>
 
