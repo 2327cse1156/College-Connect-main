@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Users, 
-  Upload, 
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  Upload,
   Settings,
   LogOut,
   Menu,
   X,
   TrendingUp,
-  TrendingUpIcon
+  TrendingUpIcon,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,37 +39,37 @@ const AdminLayout = () => {
       path: "/admin",
       icon: LayoutDashboard,
       label: "Dashboard",
-      description: "User verifications"
+      description: "User verifications",
     },
     {
-      path:"/admin/analytics",
-      icon:TrendingUp,
-      label:"Analytics",
-      description:"Platform insights"
+      path: "/admin/analytics",
+      icon: TrendingUp,
+      label: "Analytics",
+      description: "Platform insights",
     },
     {
       path: "/admin/hackathons",
       icon: Calendar,
       label: "Hackathons",
-      description: "Manage events"
+      description: "Manage events",
     },
     {
       path: "/admin/users",
       icon: Users,
       label: "All Users",
-      description: "View all users"
+      description: "View all users",
     },
     {
       path: "/resources",
       icon: Upload,
       label: "Resources",
-      description: "Manage uploads"
+      description: "Manage uploads",
     },
     {
       path: "/admin/role-transition",
       icon: TrendingUp,
       label: "Role Upgrade",
-      description: "Student transitions"
+      description: "Student transitions",
     },
   ];
 
@@ -110,7 +110,9 @@ const AdminLayout = () => {
           fixed lg:static inset-y-0 left-0 z-50
           w-72 bg-white border-r border-gray-200
           transform lg:transform-none transition-transform duration-300
-          flex flex-col ${sidebarOpen ? "translate-x-0":"-translate-x-full lg:translate-x-0"}
+          flex flex-col ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }
         `}
       >
         {/* Sidebar Header */}
@@ -125,7 +127,7 @@ const AdminLayout = () => {
             </div>
           </Link>
           <button
-           title="side"
+            title="side"
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-gray-500 hover:text-gray-700"
           >
@@ -145,7 +147,9 @@ const AdminLayout = () => {
               <p className="font-semibold text-gray-900 truncate">
                 {currentUser.name}
               </p>
-              <p className="text-sm text-gray-500 truncate">{currentUser.email}</p>
+              <p className="text-sm text-gray-500 truncate">
+                {currentUser.email}
+              </p>
               <span className="inline-block mt-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
                 Admin
               </span>
@@ -158,7 +162,7 @@ const AdminLayout = () => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = isActivePath(item.path);
-            
+
             return (
               <Link
                 key={item.path}
@@ -166,13 +170,18 @@ const AdminLayout = () => {
                 onClick={() => setSidebarOpen(false)}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                  ${isActive 
-                    ? "bg-indigo-50 text-indigo-700 font-semibold" 
-                    : "text-gray-700 hover:bg-gray-100"
+                  ${
+                    isActive
+                      ? "bg-indigo-50 text-indigo-700 font-semibold"
+                      : "text-gray-700 hover:bg-gray-100"
                   }
                 `}
               >
-                <Icon className={`h-5 w-5 ${isActive ? "text-indigo-600" : "text-gray-500"}`} />
+                <Icon
+                  className={`h-5 w-5 ${
+                    isActive ? "text-indigo-600" : "text-gray-500"
+                  }`}
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm">{item.label}</p>
                   <p className="text-xs text-gray-500">{item.description}</p>
@@ -206,7 +215,7 @@ const AdminLayout = () => {
         {/* Top Bar */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
           <button
-          title="side"
+            title="side"
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-gray-700 hover:text-gray-900"
           >
@@ -215,7 +224,8 @@ const AdminLayout = () => {
 
           <div className="flex-1 lg:ml-0 ml-4">
             <h1 className="text-xl font-bold text-gray-900">
-              {menuItems.find(item => isActivePath(item.path))?.label || "Admin Panel"}
+              {menuItems.find((item) => isActivePath(item.path))?.label ||
+                "Admin Panel"}
             </h1>
           </div>
 
