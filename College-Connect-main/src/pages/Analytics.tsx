@@ -5,10 +5,10 @@ import {
   BookOpen,
   Calendar,
   Download,
-  Eye,
   Clock,
   RefreshCw,
   Activity,
+  AlertCircle,
 } from "lucide-react";
 
 interface AnalyticsData {
@@ -28,6 +28,7 @@ interface AnalyticsData {
 const Analytics = () => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState("30");
 
   useEffect(() => {
@@ -36,50 +37,32 @@ const Analytics = () => {
 
   const fetchAnalytics = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
       const API_URL = import.meta.env.VITE_API_URL;
       const res = await fetch(`${API_URL}/admin/analytics?days=${timeRange}`, {
         credentials: "include",
       });
 
-      if (!res.ok) throw new Error("Failed to fetch");
+      if (!res.ok) {
+        throw new Error(`API Error: ${res.status} ${res.statusText}`);
+      }
 
       const result = await res.json();
-      setData(result.analytics);
-    } catch (error) {
-      console.error("Analytics error:", error);
+      
+      if (result.success && result.analytics) {
+        setData(result.analytics);
+      } else {
+        throw new Error("Invalid API response format");
+      }
+    } catch (err: any) {
+      console.error("Analytics fetch error:", err);
+      setError(err.message || "Failed to load analytics");
+      setData(null);
+    } finally {
       setLoading(false);
     }
-  };
-
-  const generateMockGrowth = () => {
-    const days = parseInt(timeRange);
-    return Array.from({ length: days }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (days - i - 1));
-      return {
-        date: date.toISOString().split("T")[0],
-        count: Math.floor(Math.random() * 20) + 5,
-      };
-    });
-  };
-
-  const generateMockDownloads = () => {
-    return Array.from({ length: 30 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (29 - i));
-      return {
-        date: date.toISOString().split("T")[0],
-        downloads: Math.floor(Math.random() * 50) + 10,
-      };
-    });
-  };
-
-  const generatePeakHours = () => {
-    return Array.from({ length: 24 }, (_, i) => ({
-      hour: i,
-      activity: Math.floor(Math.random() * 100),
-    }));
   };
 
   if (loading) {
@@ -93,20 +76,34 @@ const Analytics = () => {
     );
   }
 
-  if (!data) return null;
+  if (error || !data) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Failed to Load Analytics
+          </h2>
+          <p className="text-gray-600 mb-6">
+            {error || "Unable to fetch analytics data from the server"}
+          </p>
+          <button
+            onClick={fetchAnalytics}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 mx-auto"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  const maxGrowth = Math.max(...data.userGrowth.map((d) => d.count));
-  const maxDownloads = Math.max(
-    ...data.resourceDownloads.map((d) => d.downloads)
-  );
-  const maxActivity = Math.max(...data.peakHours.map((h) => h.activity));
-  const maxParticipation = Math.max(
-    ...data.hackathonParticipation.map((h) => h.participants)
-  );
-  const totalDepartmentUsers = data.departmentStats.reduce(
-    (sum, d) => sum + d.count,
-    0
-  );
+  const maxGrowth = Math.max(...data.userGrowth.map((d) => d.count), 1);
+  const maxDownloads = Math.max(...data.resourceDownloads.map((d) => d.downloads), 1);
+  const maxActivity = Math.max(...data.peakHours.map((h) => h.activity), 1);
+  const maxParticipation = Math.max(...data.hackathonParticipation.map((h) => h.participants), 1);
+  const totalDepartmentUsers = data.departmentStats.reduce((sum, d) => sum + d.count, 0) || 1;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
@@ -171,9 +168,7 @@ const Analytics = () => {
               <Calendar className="h-8 w-8 opacity-80" />
               <TrendingUp className="h-5 w-5" />
             </div>
-            <div className="text-3xl font-bold mb-1">
-              {data.totalHackathons}
-            </div>
+            <div className="text-3xl font-bold mb-1">{data.totalHackathons}</div>
             <div className="text-purple-100 text-sm">Active Hackathons</div>
           </div>
 
@@ -193,82 +188,76 @@ const Analytics = () => {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">User Growth</h3>
-                <p className="text-sm text-gray-600">
-                  New registrations over time
-                </p>
+                <p className="text-sm text-gray-600">New registrations over time</p>
               </div>
               <Activity className="h-5 w-5 text-indigo-600" />
             </div>
-            <div className="space-y-3">
-              {data.userGrowth.slice(-15).map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3">
-                  <div className="text-xs text-gray-500 w-16">
-                    {new Date(item.date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
+            {data.userGrowth.length > 0 ? (
+              <div className="space-y-3">
+                {data.userGrowth.slice(-15).map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className="text-xs text-gray-500 w-16">
+                      {new Date(item.date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </div>
+                    <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${(item.count / maxGrowth) * 100}%` }}
+                      />
+                    </div>
+                    <div className="text-sm font-semibold text-gray-700 w-8 text-right">
+                      {item.count}
+                    </div>
                   </div>
-                  <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${(item.count / maxGrowth) * 100}%` }}
-                    />
-                  </div>
-                  <div className="text-sm font-semibold text-gray-700 w-8 text-right">
-                    {item.count}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No growth data available
+              </div>
+            )}
           </div>
 
           {/* Department Distribution */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  Department Distribution
-                </h3>
+                <h3 className="text-lg font-bold text-gray-900">Department Distribution</h3>
                 <p className="text-sm text-gray-600">Students by department</p>
               </div>
               <Users className="h-5 w-5 text-indigo-600" />
             </div>
-            <div className="space-y-4">
-              {data.departmentStats.map((dept, idx) => {
-                const percentage = (
-                  (dept.count / totalDepartmentUsers) *
-                  100
-                ).toFixed(1);
-                const colors = [
-                  "bg-blue-500",
-                  "bg-green-500",
-                  "bg-purple-500",
-                  "bg-orange-500",
-                  "bg-pink-500",
-                ];
-                return (
-                  <div key={idx}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">
-                        {dept.department}
-                      </span>
-                      <span className="text-sm font-semibold text-gray-900">
-                        {dept.count}{" "}
-                        <span className="text-gray-500">({percentage}%)</span>
-                      </span>
+            {data.departmentStats.length > 0 ? (
+              <div className="space-y-4">
+                {data.departmentStats.map((dept, idx) => {
+                  const percentage = ((dept.count / totalDepartmentUsers) * 100).toFixed(1);
+                  const colors = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500"];
+                  return (
+                    <div key={idx}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">{dept.department}</span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {dept.count} <span className="text-gray-500">({percentage}%)</span>
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className={`${colors[idx % colors.length]} h-full rounded-full transition-all duration-500`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                      <div
-                        className={`${
-                          colors[idx % colors.length]
-                        } h-full rounded-full transition-all duration-500`}
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No department data available
+              </div>
+            )}
           </div>
         </div>
 
@@ -276,135 +265,128 @@ const Analytics = () => {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">
-                Hackathon Participation
-              </h3>
-              <p className="text-sm text-gray-600">
-                Monthly participation trends
-              </p>
+              <h3 className="text-lg font-bold text-gray-900">Hackathon Participation</h3>
+              <p className="text-sm text-gray-600">Monthly participation trends</p>
             </div>
             <Calendar className="h-5 w-5 text-indigo-600" />
           </div>
-          <div className="flex items-end justify-between gap-4 h-64">
-            {data.hackathonParticipation.map((item, idx) => (
-              <div
-                key={idx}
-                className="flex-1 flex flex-col items-center gap-2"
-              >
-                <div className="relative flex-1 w-full flex items-end">
-                  <div
-                    className="w-full bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-lg transition-all duration-500 hover:from-purple-600 hover:to-purple-500 cursor-pointer group"
-                    style={{
-                      height: `${
-                        (item.participants / maxParticipation) * 100
-                      }%`,
-                    }}
-                  >
-                    <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap transition-opacity">
-                      {item.participants} participants
+          {data.hackathonParticipation.length > 0 ? (
+            <div className="flex items-end justify-between gap-4 h-64">
+              {data.hackathonParticipation.map((item, idx) => (
+                <div key={idx} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="relative flex-1 w-full flex items-end">
+                    <div
+                      className="w-full bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-lg transition-all duration-500 hover:from-purple-600 hover:to-purple-500 cursor-pointer group"
+                      style={{ height: `${(item.participants / maxParticipation) * 100}%` }}
+                    >
+                      <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap transition-opacity">
+                        {item.participants} participants
+                      </div>
                     </div>
                   </div>
+                  <span className="text-sm font-medium text-gray-700">{item.month}</span>
                 </div>
-                <span className="text-sm font-medium text-gray-700">
-                  {item.month}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              No hackathon data available
+            </div>
+          )}
         </div>
 
         {/* Resource Downloads Over Time */}
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">
-                Resource Downloads
-              </h3>
+              <h3 className="text-lg font-bold text-gray-900">Resource Downloads</h3>
               <p className="text-sm text-gray-600">Daily download activity</p>
             </div>
             <Download className="h-5 w-5 text-indigo-600" />
           </div>
-          <div className="flex items-end justify-between gap-2 h-48">
-            {data.resourceDownloads.slice(-20).map((item, idx) => (
-              <div
-                key={idx}
-                className="flex-1 flex flex-col items-center gap-2"
-              >
-                <div
-                  className="w-full bg-gradient-to-t from-green-500 to-green-400 rounded-t transition-all duration-300 hover:from-green-600 hover:to-green-500 cursor-pointer group relative"
-                  style={{
-                    height: `${(item.downloads / maxDownloads) * 100}%`,
-                  }}
-                >
-                  <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap transition-opacity">
-                    {item.downloads}
+          {data.resourceDownloads.length > 0 ? (
+            <div className="flex items-end justify-between gap-2 h-48">
+              {data.resourceDownloads.slice(-20).map((item, idx) => (
+                <div key={idx} className="flex-1 flex flex-col items-center gap-2">
+                  <div
+                    className="w-full bg-gradient-to-t from-green-500 to-green-400 rounded-t transition-all duration-300 hover:from-green-600 hover:to-green-500 cursor-pointer group relative"
+                    style={{ height: `${(item.downloads / maxDownloads) * 100}%` }}
+                  >
+                    <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap transition-opacity">
+                      {item.downloads}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              No download data available
+            </div>
+          )}
         </div>
 
         {/* Peak Activity Hours Heatmap */}
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">
-                Peak Activity Hours
-              </h3>
-              <p className="text-sm text-gray-600">
-                Hourly activity heatmap (24-hour format)
-              </p>
+              <h3 className="text-lg font-bold text-gray-900">Peak Activity Hours</h3>
+              <p className="text-sm text-gray-600">Hourly activity heatmap (24-hour format)</p>
             </div>
             <Clock className="h-5 w-5 text-indigo-600" />
           </div>
-          <div className="grid grid-cols-12 gap-2">
-            {data.peakHours.map((item) => {
-              const intensity = (item.activity / maxActivity) * 100;
-              const getColor = () => {
-                if (intensity > 75) return "bg-red-500";
-                if (intensity > 50) return "bg-orange-500";
-                if (intensity > 25) return "bg-yellow-500";
-                return "bg-green-500";
-              };
-              return (
-                <div
-                  key={item.hour}
-                  className="flex flex-col items-center gap-2"
-                >
-                  <div
-                    className={`w-full aspect-square rounded-lg ${getColor()} transition-all duration-300 hover:scale-110 cursor-pointer group relative`}
-                    style={{ opacity: intensity / 100 }}
-                  >
-                    <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap transition-opacity z-10">
-                      {item.activity} active
+          {data.peakHours.length > 0 ? (
+            <>
+              <div className="grid grid-cols-12 gap-2">
+                {data.peakHours.map((item) => {
+                  const intensity = (item.activity / maxActivity) * 100;
+                  const getColor = () => {
+                    if (intensity > 75) return "bg-red-500";
+                    if (intensity > 50) return "bg-orange-500";
+                    if (intensity > 25) return "bg-yellow-500";
+                    return "bg-green-500";
+                  };
+                  return (
+                    <div key={item.hour} className="flex flex-col items-center gap-2">
+                      <div
+                        className={`w-full aspect-square rounded-lg ${getColor()} transition-all duration-300 hover:scale-110 cursor-pointer group relative`}
+                        style={{ opacity: Math.max(intensity / 100, 0.2) }}
+                      >
+                        <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap transition-opacity z-10">
+                          {item.activity} active
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-600">
+                        {item.hour.toString().padStart(2, "0")}h
+                      </span>
                     </div>
-                  </div>
-                  <span className="text-xs text-gray-600">
-                    {item.hour.toString().padStart(2, "0")}h
-                  </span>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-green-500 opacity-30"></div>
+                  <span className="text-sm text-gray-600">Low</span>
                 </div>
-              );
-            })}
-          </div>
-          <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-green-500 opacity-30"></div>
-              <span className="text-sm text-gray-600">Low</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-yellow-500 opacity-50"></div>
+                  <span className="text-sm text-gray-600">Medium</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-orange-500 opacity-75"></div>
+                  <span className="text-sm text-gray-600">High</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-red-500"></div>
+                  <span className="text-sm text-gray-600">Peak</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              No activity data available
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-yellow-500 opacity-50"></div>
-              <span className="text-sm text-gray-600">Medium</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-orange-500 opacity-75"></div>
-              <span className="text-sm text-gray-600">High</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-red-500"></div>
-              <span className="text-sm text-gray-600">Peak</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

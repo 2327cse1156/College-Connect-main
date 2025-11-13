@@ -67,12 +67,6 @@ const AdminLayout = () => {
       label: "Resources",
       description: "Manage uploads",
     },
-    // {
-    //   path: "/admin/role-transition",
-    //   icon: UserCog,
-    //   label: "Role Upgrade",
-    //   description: "Student transitions",
-    // },ana
   ];
 
   console.log(menuItems);
