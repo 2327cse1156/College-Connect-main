@@ -1,19 +1,18 @@
-// src/App.tsx - COMPLETE WORKING VERSION
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { Outlet } from "react-router-dom";
 
-// Import components
+
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// Import admin layout
+
 import AdminLayout from "./components/AdminLayout";
 
-// Public Pages
+
 import Home from "./pages/Home";
 import Hackathons from "./pages/Hackathons";
 import TeamBuilder from "./pages/TeamBuilder";
