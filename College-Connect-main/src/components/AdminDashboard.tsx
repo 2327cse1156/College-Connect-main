@@ -15,7 +15,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-
 interface User {
   _id: string;
   name: string;
@@ -39,6 +38,19 @@ interface Stats {
   approvedCount: number;
   rejectedCount: number;
   recentRegistrations: number;
+  todayRegistrations?: number;
+  weeklyGrowth?: number;
+}
+
+interface AnalyticsData {
+  userGrowth: { date: string; count: number }[];
+  departmentStats: { department: string; count: number }[];
+  hackathonParticipation: { month: string; participants: number }[];
+  resourceDownloads: { date: string; downloads: number }[];
+  peakHours: { hour: number; activity: number }[];
+  totalResources?: number;
+  totalHackathons?: number;
+  totalDownloads?: number;
 }
 
 interface StatCardProps {
@@ -51,6 +63,7 @@ interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
+  subtitle?:string;
 }
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -60,6 +73,7 @@ const StatCard: React.FC<StatCardProps> = ({
   color,
   bgColor,
   trend,
+  subtitle,
 }) => (
   <div
     className={`${bgColor} rounded-xl shadow-lg p-6 relative overflow-hidden transition-transform hover:-translate-y-1`}
@@ -87,6 +101,9 @@ const StatCard: React.FC<StatCardProps> = ({
       <div>
         <p className="text-sm text-gray-600 mb-1">{title}</p>
         <p className="text-4xl font-bold text-gray-900">{value}</p>
+        {subtitle && (
+          <p className="text-xs text-gray-500 mt-2">{subtitle}</p>
+        )}
       </div>
     </div>
   </div>
