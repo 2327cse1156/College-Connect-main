@@ -592,6 +592,13 @@ function AllUsers() {
                         {/* 🔥 FIXED: Using Link instead of window.open */}
                         <Link
                           to={`/profile/${user._id}`}
+                          onClick={() => {
+                            console.log("👁️ Eye clicked! User ID:", user._id);
+                            console.log(
+                              "Navigating to:",
+                              `/profile/${user._id}`
+                            );
+                          }}
                           className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
                           title="View Profile"
                         >
@@ -642,7 +649,12 @@ function AllUsers() {
                     .map((page, idx, arr) => (
                       <>
                         {idx > 0 && arr[idx - 1] !== page - 1 && (
-                          <span key={`dots-${page}`} className="px-2 text-gray-400">...</span>
+                          <span
+                            key={`dots-${page}`}
+                            className="px-2 text-gray-400"
+                          >
+                            ...
+                          </span>
                         )}
                         <button
                           key={page}

@@ -32,8 +32,11 @@ export interface ProfileForm {
 }
 
 const Profile = () => {
+   console.log("🚀 Profile Component Rendered!");
   const { userId } = useParams(); // Get userId from URL
+   console.log("🚀 Profile Component Rendered!");
   const { currentUser, updateProfile, getProfile } = useAuth();
+  console.log("👤 currentUser:", currentUser?._id);
   const [form, setForm] = useState<ProfileForm>({
     name: "",
     bio: "",
