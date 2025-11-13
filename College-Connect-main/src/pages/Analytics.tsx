@@ -26,6 +26,8 @@ interface AnalyticsData {
 }
 
 const Analytics = () => {
+  console.log("Analytics component mounted!");
+  
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
