@@ -14,6 +14,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
+import Analytics from "../pages/Analytics";
 
 interface User {
   _id: string;
@@ -113,6 +114,7 @@ export default function AdminDashboard() {
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [analytics,setAnalytics] = useState<Stats | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -815,6 +817,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+      <Analytics/>
     </div>
   );
 }
