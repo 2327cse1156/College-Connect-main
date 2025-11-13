@@ -1,13 +1,13 @@
 import axios from "axios";
 import { CheckCircle, Clock, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom"; // 🆕 ADD THIS
 import toast from "react-hot-toast";
 import {
   Users,
   Search,
   Filter,
   Download,
-  Edit,
   Trash2,
   Mail,
   RefreshCw,
@@ -147,7 +147,7 @@ function AllUsers() {
 
   const handleBulkDelete = async () => {
     if (
-      !confirm(`Delete ${selectedUsers.length} users ? This cannot be undone!`)
+      !confirm(`Delete ${selectedUsers.length} users? This cannot be undone!`)
     )
       return;
     try {
@@ -169,7 +169,7 @@ function AllUsers() {
 
   const handleBulkEmail = () => {
     const emails = selectedUsers
-      .map((id) => users.find((u) => u._id == id)?.email)
+      .map((id) => users.find((u) => u._id === id)?.email)
       .filter(Boolean)
       .join(",");
 
@@ -435,7 +435,7 @@ function AllUsers() {
 
               <button
                 onClick={clearFilters}
-                className="md:col-span-4 px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                className="md:col-span-5 px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
               >
                 Clear All Filters
               </button>
@@ -589,15 +589,14 @@ function AllUsers() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() =>
-                            window.open(`/profile/${user._id}`, "_blank")
-                          }
+                        {/* 🔥 FIXED: Using Link instead of window.open */}
+                        <Link
+                          to={`/profile/${user._id}`}
                           className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
                           title="View Profile"
                         >
                           <Eye className="h-4 w-4" />
-                        </button>
+                        </Link>
                         <button
                           onClick={() =>
                             (window.location.href = `mailto:${user.email}`)
@@ -643,7 +642,7 @@ function AllUsers() {
                     .map((page, idx, arr) => (
                       <>
                         {idx > 0 && arr[idx - 1] !== page - 1 && (
-                          <span className="px-2 text-gray-400">...</span>
+                          <span key={`dots-${page}`} className="px-2 text-gray-400">...</span>
                         )}
                         <button
                           key={page}
