@@ -1,5 +1,3 @@
-// routes/userRoutes.js - CREATE THIS FILE
-
 import express from "express";
 import { authMiddleware } from "../middlewares/auth.js";
 import User from "../models/User.js";
@@ -8,18 +6,22 @@ const router = express.Router();
 
 // @route   GET /api/users/:userId
 // @desc    Get user profile by ID
-// @access  Private (logged in users)
+// @access  Private (logged in users only)
 router.get("/:userId", authMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const user = await User.findById(userId).select("-password -verificationToken -resetPasswordToken");
+    // Find user by ID (exclude sensitive fields)
+    const user = await User.findById(userId).select(
+      "-password -verificationToken -resetPasswordToken"
+    );
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.json({ 
+    // Return user profile
+    res.json({
       success: true,
       user: {
         _id: user._id,
@@ -42,8 +44,9 @@ router.get("/:userId", authMiddleware, async (req, res) => {
         currentYear: user.currentYear,
         verificationStatus: user.verificationStatus,
         activities: user.activities,
-        createdAt: user.createdAt
-      }
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
     });
   } catch (error) {
     console.error("Get user profile error:", error);
