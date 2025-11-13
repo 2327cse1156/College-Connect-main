@@ -13,8 +13,11 @@ import {
   TrendingUp,
   AlertCircle,
   RefreshCw,
+  Activity,
+  BookOpen,
+  Calendar,
+  BarChart3,
 } from "lucide-react";
-import Analytics from "../pages/Analytics";
 
 interface User {
   _id: string;
@@ -64,7 +67,7 @@ interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
-  subtitle?:string;
+  subtitle?: string;
 }
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -114,7 +117,7 @@ export default function AdminDashboard() {
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [analytics,setAnalytics] = useState<Stats | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -123,14 +126,20 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCollege, setFilterCollege] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [showAnalytics, setShowAnalytics] = useState(true);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [timeRange, setTimeRange] = useState("30");
 
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (showAnalytics) {
+      fetchAnalytics();
+    }
+  }, [showAnalytics, timeRange]);
 
   useEffect(() => {
     filterUsers();
@@ -153,7 +162,6 @@ export default function AdminDashboard() {
         error.response?.data?.error || error.message || "Failed to load data";
       alert(`❌ Error: ${errorMsg}`);
 
-      // Set empty data on error
       setPendingUsers([]);
       setFilteredUsers([]);
       setStats({
@@ -168,10 +176,24 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchAnalytics = async () => {
+    try {
+      const res = await axios.get(
+        `${API_URL}/admin/analytics?days=${timeRange}`,
+        { withCredentials: true }
+      );
+
+      if (res.data.success && res.data.analytics) {
+        setAnalytics(res.data.analytics);
+      }
+    } catch (error: any) {
+      console.error("Analytics fetch error:", error);
+    }
+  };
+
   const filterUsers = () => {
     let filtered = [...pendingUsers];
 
-    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(
         (user) =>
@@ -180,7 +202,6 @@ export default function AdminDashboard() {
       );
     }
 
-    // College filter
     if (filterCollege !== "all") {
       filtered = filtered.filter((user) => user.college === filterCollege);
     }
@@ -312,6 +333,23 @@ export default function AdminDashboard() {
     );
   }
 
+  // Analytics Charts Data
+  const maxGrowth = analytics
+    ? Math.max(...analytics.userGrowth.map((d) => d.count), 1)
+    : 1;
+  const maxDownloads = analytics
+    ? Math.max(...analytics.resourceDownloads.map((d) => d.downloads), 1)
+    : 1;
+  const maxActivity = analytics
+    ? Math.max(...analytics.peakHours.map((h) => h.activity), 1)
+    : 1;
+  const maxParticipation = analytics
+    ? Math.max(...analytics.hackathonParticipation.map((h) => h.participants), 1)
+    : 1;
+  const totalDepartmentUsers = analytics
+    ? analytics.departmentStats.reduce((sum, d) => sum + d.count, 0) || 1
+    : 1;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -325,13 +363,26 @@ export default function AdminDashboard() {
               Manage user verifications and platform statistics
             </p>
           </div>
-          <button
-            onClick={fetchData}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowAnalytics(!showAnalytics)}
+              className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-all ${
+                showAnalytics
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "bg-white border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              {showAnalytics ? "Hide Analytics" : "Show Analytics"}
+            </button>
+            <button
+              onClick={fetchData}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -343,7 +394,16 @@ export default function AdminDashboard() {
               value={stats.totalUsers}
               color="bg-blue-500"
               bgColor="bg-blue-50"
-              trend={{ value: 12, isPositive: true }}
+              trend={
+                stats.weeklyGrowth
+                  ? { value: stats.weeklyGrowth, isPositive: true }
+                  : undefined
+              }
+              subtitle={
+                stats.todayRegistrations
+                  ? `+${stats.todayRegistrations} today`
+                  : undefined
+              }
             />
             <StatCard
               icon={<Clock className="w-6 h-6" />}
@@ -358,7 +418,6 @@ export default function AdminDashboard() {
               bgColor="bg-green-50"
               title="Approved"
               value={stats.approvedCount}
-              trend={{ value: 8, isPositive: true }}
             />
             <StatCard
               icon={<XCircle className="w-6 h-6" />}
@@ -373,8 +432,208 @@ export default function AdminDashboard() {
               bgColor="bg-purple-50"
               title="This Week"
               value={stats.recentRegistrations}
-              trend={{ value: 15, isPositive: true }}
             />
+          </div>
+        )}
+
+        {/* Analytics Section */}
+        {showAnalytics && analytics && (
+          <div className="space-y-6">
+            {/* Analytics Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Platform Analytics
+              </h2>
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"
+              >
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+              </select>
+            </div>
+
+            {/* Additional KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {analytics.totalResources !== undefined && (
+                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
+                  <BookOpen className="h-8 w-8 opacity-80 mb-2" />
+                  <div className="text-3xl font-bold mb-1">
+                    {analytics.totalResources}
+                  </div>
+                  <div className="text-green-100 text-sm">Total Resources</div>
+                </div>
+              )}
+
+              {analytics.totalHackathons !== undefined && (
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
+                  <Calendar className="h-8 w-8 opacity-80 mb-2" />
+                  <div className="text-3xl font-bold mb-1">
+                    {analytics.totalHackathons}
+                  </div>
+                  <div className="text-purple-100 text-sm">Active Hackathons</div>
+                </div>
+              )}
+
+              {analytics.totalDownloads !== undefined && (
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white shadow-lg">
+                  <Download className="h-8 w-8 opacity-80 mb-2" />
+                  <div className="text-3xl font-bold mb-1">
+                    {analytics.totalDownloads}
+                  </div>
+                  <div className="text-orange-100 text-sm">Total Downloads</div>
+                </div>
+              )}
+            </div>
+
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* User Growth Chart */}
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      User Growth
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      New registrations over time
+                    </p>
+                  </div>
+                  <Activity className="h-5 w-5 text-indigo-600" />
+                </div>
+                {analytics.userGrowth.length > 0 ? (
+                  <div className="space-y-3">
+                    {analytics.userGrowth.slice(-10).map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className="text-xs text-gray-500 w-16">
+                          {new Date(item.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all"
+                            style={{ width: `${(item.count / maxGrowth) * 100}%` }}
+                          />
+                        </div>
+                        <div className="text-sm font-semibold text-gray-700 w-8 text-right">
+                          {item.count}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No growth data available
+                  </div>
+                )}
+              </div>
+
+              {/* Department Distribution */}
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      Department Distribution
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Students by department
+                    </p>
+                  </div>
+                  <Users className="h-5 w-5 text-indigo-600" />
+                </div>
+                {analytics.departmentStats.length > 0 ? (
+                  <div className="space-y-4">
+                    {analytics.departmentStats.map((dept, idx) => {
+                      const percentage = (
+                        (dept.count / totalDepartmentUsers) *
+                        100
+                      ).toFixed(1);
+                      const colors = [
+                        "bg-blue-500",
+                        "bg-green-500",
+                        "bg-purple-500",
+                        "bg-orange-500",
+                        "bg-pink-500",
+                      ];
+                      return (
+                        <div key={idx}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700">
+                              {dept.department}
+                            </span>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {dept.count}{" "}
+                              <span className="text-gray-500">
+                                ({percentage}%)
+                              </span>
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`${
+                                colors[idx % colors.length]
+                              } h-full rounded-full transition-all`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No department data available
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Hackathon Participation */}
+            {analytics.hackathonParticipation.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      Hackathon Participation
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Monthly participation trends
+                    </p>
+                  </div>
+                  <Calendar className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div className="flex items-end justify-between gap-4 h-48">
+                  {analytics.hackathonParticipation.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex-1 flex flex-col items-center gap-2"
+                    >
+                      <div className="relative flex-1 w-full flex items-end">
+                        <div
+                          className="w-full bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-lg transition-all hover:from-purple-600 hover:to-purple-500 cursor-pointer group"
+                          style={{
+                            height: `${
+                              (item.participants / maxParticipation) * 100
+                            }%`,
+                          }}
+                        >
+                          <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                            {item.participants} participants
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium text-gray-700">
+                        {item.month}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -817,7 +1076,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-      <Analytics/>
     </div>
   );
 }
