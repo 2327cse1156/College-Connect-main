@@ -67,6 +67,12 @@ const Profile = () => {
   useEffect(() => {
     const loadProfile = async () => {
       setFetchingProfile(true);
+          console.log("=== PROFILE DEBUG ===");
+    console.log("userId from URL:", userId);
+    console.log("currentUser._id:", currentUser?._id);
+    console.log("isOwnProfile:", isOwnProfile);
+    console.log("API_URL:", API_URL);
+    console.log("====================");
       try {
         let profileData;
 
