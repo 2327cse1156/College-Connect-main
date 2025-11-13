@@ -34,9 +34,22 @@ export interface ProfileForm {
 const Profile = () => {
    console.log("🚀 Profile Component Rendered!");
   const { userId } = useParams(); // Get userId from URL
-   console.log("🚀 Profile Component Rendered!");
+   
   const { currentUser, updateProfile, getProfile } = useAuth();
-  console.log("👤 currentUser:", currentUser?._id);
+  console.log("userId:", userId);
+  console.log("currentUser:", currentUser);
+  if (!currentUser) {
+    console.log("❌ No currentUser, redirecting...");
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600">Please login to view profiles</p>
+        </div>
+      </div>
+    );
+  }
+  
+ 
   const [form, setForm] = useState<ProfileForm>({
     name: "",
     bio: "",

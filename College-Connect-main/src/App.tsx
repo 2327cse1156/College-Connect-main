@@ -79,9 +79,9 @@ function App() {
             <Route
               path="/profile/:userId" // 🆕 ADD THIS - Dynamic route
               element={
-                <ProtectedRoute>
+                // <ProtectedRoute>
                   <Profile />
-                </ProtectedRoute>
+                // </ProtectedRoute>
               }
             />
             <Route
