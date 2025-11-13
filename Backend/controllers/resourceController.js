@@ -5,11 +5,14 @@ import cloudinary from "../config/cloudinary.js";
 export const getAllResources = async (req, res) => {
   try {
     const { category, search, tags, sortBy } = req.query;
+    
     let query = {
       status: "active",
       isPublic: true,
     };
+    
     if (category && category !== "all") query.category = category;
+    
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },
@@ -21,17 +24,18 @@ export const getAllResources = async (req, res) => {
       const tagsArray = tags.split(",").map((t) => t.trim());
       query.tags = { $in: tagsArray };
     }
+    
     let sort = {};
     switch (sortBy) {
       case "popular":
         sort = { downloads: -1, views: -1 };
         break;
       case "liked":
-        sort = {liked:-1};
+        sort = { likes: -1 };
         break;
       case "recent":
       default:
-      sort= { createdAt: -1 } 
+        sort = { createdAt: -1 };
     }
 
     const resources = await Resources.find(query)
@@ -40,10 +44,44 @@ export const getAllResources = async (req, res) => {
       .sort(sort)
       .limit(100);
 
+    // ✅ SAFETY CHECK: Ensure uploadedBy exists
+    const safeResources = resources.map(resource => {
+      const resourceObj = resource.toObject();
+      
+      // Ensure uploadedBy exists and has avatar
+      if (!resourceObj.uploadedBy) {
+        resourceObj.uploadedBy = {
+          _id: "unknown",
+          name: "Unknown User",
+          email: "",
+          avatar: null,
+        };
+      } else {
+        resourceObj.uploadedBy.avatar = resourceObj.uploadedBy.avatar || null;
+      }
+
+      // Ensure comments have safe user data
+      if (resourceObj.comments && Array.isArray(resourceObj.comments)) {
+        resourceObj.comments = resourceObj.comments.map(comment => ({
+          ...comment,
+          user: comment.user ? {
+            ...comment.user,
+            avatar: comment.user.avatar || null
+          } : {
+            _id: "unknown",
+            name: "Unknown User",
+            avatar: null,
+          },
+        }));
+      }
+
+      return resourceObj;
+    });
+
     res.status(200).json({
       success: true,
-      count: resources.length,
-      resources,
+      count: safeResources.length,
+      resources: safeResources,
     });
   } catch (error) {
     console.error("Get resources error:", error);
